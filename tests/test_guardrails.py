@@ -61,6 +61,11 @@ def test_row_cap_is_added_or_clamped() -> None:
     assert validate("MATCH (n) RETURN n.name LIMIT 99999").endswith(f"LIMIT {MAX_ROWS}")
 
 
+def test_a_parameterised_limit_counts_as_a_limit() -> None:
+    q = "MATCH (n) RETURN n.name LIMIT $limit"
+    assert validate(q) == q  # no second LIMIT appended
+
+
 def test_strings_are_preserved_when_capping() -> None:
     assert "'LIMIT 5; drop'" in validate("MATCH (n {name: 'LIMIT 5; drop'}) RETURN n.name")
 

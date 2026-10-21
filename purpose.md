@@ -1,6 +1,6 @@
 # RedString-CTI — Purpose, Data, Models, and What Each Phase Uses
 
-> **Status (2026-10-21): Phases 0–3 are done; Phase 4 (the retrieval baselines) is next.** The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
+> **Status (2026-10-21): Phases 0–5 are done; Phase 6 (the LangGraph agent) is next.** One run from Phase 4 (finishing the Text2Cypher dev evaluation) waits for the Groq daily token quota to reset. The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
 
 ## 1. The one-paragraph version
 
@@ -112,8 +112,8 @@ What it will **not** do: it knows nothing about *your* network, logs, or alerts.
         │
         │ read-only access only
         ▼
- FastMCP server (6 tools + guardrails + audit log)          Phase 5
-        │  tools: semantic_search, get_entity, get_neighbors,
+ FastMCP server (7 read-only tools + guardrails + audit log) Phase 5  [DONE]
+        │  tools: semantic_search, resolve_entity, get_entity, get_neighbors,
         │         find_paths, cypher_query, cve_lookup
         ▼
  LangGraph agent (Groq LLM)                                 Phase 6

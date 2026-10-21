@@ -28,7 +28,7 @@ _CALL = re.compile(r"\bCALL\s+([\w.]+)", re.IGNORECASE)
 _ALLOWED_PROCEDURES = {"db.index.vector.queryNodes", "db.index.fulltext.queryNodes"}
 _BRACKET = re.compile(r"\[[^\[\]]*\]")
 _VARLEN = re.compile(r"\*\s*(\d+)?\s*(\.\.)?\s*(\d+)?")
-_FINAL_LIMIT = re.compile(r"\bLIMIT\s+(\d+)\s*$", re.IGNORECASE)
+_FINAL_LIMIT = re.compile(r"\bLIMIT\s+(\d+|\$\w+)\s*$", re.IGNORECASE)  # a number or a bound parameter
 
 
 class GuardrailError(ValueError):
@@ -75,18 +75,20 @@ def validate(cypher: str) -> str:
     original = text.rstrip().rstrip(";").rstrip()
     if (m := _FINAL_LIMIT.search(original)) is None:
         return f"{original} LIMIT {MAX_ROWS}"
-    if int(m.group(1)) > MAX_ROWS:
+    if not m.group(1).startswith("$") and int(m.group(1)) > MAX_ROWS:  # parameterised limits are set by our own tools
         return original[: m.start()] + f"LIMIT {MAX_ROWS}"
     return original
 
 
-def run_read(driver: Driver, cypher: str, *, timeout_s: float = TIMEOUT_S) -> tuple[list[dict[str, Any]], str]:
+def run_read(
+    driver: Driver, cypher: str, *, params: dict[str, Any] | None = None, timeout_s: float = TIMEOUT_S
+) -> tuple[list[dict[str, Any]], str]:
     """Validate then execute in a read transaction with a timeout. Returns (rows, executed query)."""
     safe = validate(cypher)
 
     @unit_of_work(timeout=timeout_s)
     def work(tx: ManagedTransaction) -> list[dict[str, Any]]:
-        return [dict(r) for r in tx.run(safe)]
+        return [dict(r) for r in tx.run(safe, params or {})]
 
     try:
         with driver.session() as session:

@@ -98,40 +98,46 @@ def _weaknesses(cve: dict[str, Any], stats: Counter[str]) -> tuple[dict[str, str
     return found, pseudo
 
 
+def parse_cve(cve: dict[str, Any], stats: Counter[str], rejected_ids: set[str] | None = None) -> CveRecord | None:
+    """One NVD `cve` object -> a record; None when the CVE is Rejected."""
+    stats["cves_seen"] += 1
+    status = cve.get("vulnStatus")
+    if status in SKIP_STATUS:
+        stats[f"skipped_{status.lower()}:CVE"] += 1
+        if rejected_ids is not None:
+            rejected_ids.add(cve["id"])
+        return None
+    props: dict[str, Any] = {
+        "description": _english(cve.get("descriptions", [])),
+        "published": cve.get("published"),
+        "last_modified": cve.get("lastModified"),
+        "vuln_status": status,
+        **_pick_cvss(cve.get("metrics", {})),
+    }
+    weaknesses, pseudo = _weaknesses(cve, stats)
+    stats["cves_with_cwe" if weaknesses else "cves_without_cwe"] += 1
+    if "cvss_score" not in props:
+        stats["cves_without_cvss"] += 1
+    return CveRecord(
+        node=Node(
+            label="CVE",
+            key_prop=KEY_PROP,
+            key=cve["id"],
+            props={k: v for k, v in props.items() if v is not None},
+        ),
+        weaknesses=weaknesses,
+        pseudo_weakness=pseudo,
+    )
+
+
 def iter_cves(
     path: Path, stats: Counter[str], rejected_ids: set[str] | None = None
 ) -> Iterator[CveRecord]:
     with gzip.open(path, "rb") as f:
         for item in ijson.items(f, "vulnerabilities.item", use_float=True):
-            cve = item["cve"]
-            stats["cves_seen"] += 1
-            status = cve.get("vulnStatus")
-            if status in SKIP_STATUS:
-                stats[f"skipped_{status.lower()}:CVE"] += 1
-                if rejected_ids is not None:
-                    rejected_ids.add(cve["id"])
-                continue
-            props: dict[str, Any] = {
-                "description": _english(cve.get("descriptions", [])),
-                "published": cve.get("published"),
-                "last_modified": cve.get("lastModified"),
-                "vuln_status": status,
-                **_pick_cvss(cve.get("metrics", {})),
-            }
-            weaknesses, pseudo = _weaknesses(cve, stats)
-            stats["cves_with_cwe" if weaknesses else "cves_without_cwe"] += 1
-            if "cvss_score" not in props:
-                stats["cves_without_cvss"] += 1
-            yield CveRecord(
-                node=Node(
-                    label="CVE",
-                    key_prop=KEY_PROP,
-                    key=cve["id"],
-                    props={k: v for k, v in props.items() if v is not None},
-                ),
-                weaknesses=weaknesses,
-                pseudo_weakness=pseudo,
-            )
+            record = parse_cve(item["cve"], stats, rejected_ids)
+            if record is not None:
+                yield record
 
 
 class NvdLoadResult(BaseModel):

@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -35,3 +35,6 @@ eval-vector:
 
 eval-t2c:
 	uv run python evals/runners/run_rag_eval.py --system text2cypher --split dev
+
+serve:
+	uv run python -m redstring_cti.mcp_server.server
