@@ -2,7 +2,7 @@
 
 Agentic GraphRAG for cyber threat intelligence over MITRE ATT&CK, CAPEC, CWE, NVD and CISA KEV, with a QLoRA-fine-tuned threat-report extractor.
 
-**Status:** Phases 0–3 complete (data download, knowledge graph, embeddings, data-quality report, 150-question gold evaluation set). Next: the retrieval baselines. Build guide: the execution playbook (see the checklist in it).
+**Status:** Phases 0–3 complete (data download, knowledge graph, embeddings, data-quality report, 150-question gold evaluation set). Phase 4 (retrieval baselines) is built and partly run; interim results are in `evals/results/baselines.md`. Build guide: the execution playbook (see the checklist in it).
 
 | What | Where |
 |---|---|

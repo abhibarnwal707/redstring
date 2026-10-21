@@ -17,3 +17,7 @@ finetune/data/*
 CLAUDE.md
 visualizer.md
 purpose.md
+
+mlflow.db
+evals/results/runs/smoke-*
+evals/results/smoke-*.md
