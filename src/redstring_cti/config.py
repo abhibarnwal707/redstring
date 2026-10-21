@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str
     ollama_host: str = "http://localhost:11434"
+    groq_api_key: str = ""
 
 
 def get_settings() -> Settings:

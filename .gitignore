@@ -12,3 +12,6 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 finetune/data/*
+
+# Local Claude Code context (not committed)
+CLAUDE.md
