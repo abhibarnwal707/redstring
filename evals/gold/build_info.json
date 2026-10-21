@@ -1,0 +1,53 @@
+{
+  "built_at": "2026-10-21T12:03:24+00:00",
+  "questions": 150,
+  "by_type": {
+    "single_hop": 40,
+    "multi_hop": 60,
+    "aggregation": 25,
+    "semantic": 15,
+    "unanswerable": 10
+  },
+  "by_split": {
+    "dev": 120,
+    "test": 30
+  },
+  "graph": {
+    "nodes": {
+      "Campaign": 57,
+      "Reference": 3344,
+      "Mitigation": 44,
+      "Group": 178,
+      "Software": 842,
+      "Technique": 706,
+      "Tactic": 15,
+      "CWE": 944,
+      "CAPEC": 558,
+      "CVE": 393847
+    },
+    "edges": {
+      "USES": 18975,
+      "MITIGATES": 1477,
+      "SUBTECHNIQUE_OF": 479,
+      "ATTRIBUTED_TO": 26,
+      "IN_TACTIC": 881,
+      "CHILD_OF": 1692,
+      "EXPLOITS": 1211,
+      "MAPS_TO": 256,
+      "HAS_WEAKNESS": 356306
+    }
+  },
+  "source_versions": {
+    "Group": [
+      "20.0"
+    ],
+    "CWE": [
+      "4.20"
+    ],
+    "CAPEC": [
+      "3.9"
+    ]
+  },
+  "split_seed": 42,
+  "note": "Gold answers are Cypher results over this graph snapshot. If the graph is rebuilt or updated, rerun `make gold` and review the diff; tests/test_gold.py fails when answers drift."
+}

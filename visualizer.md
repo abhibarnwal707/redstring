@@ -6,7 +6,7 @@ Everything marked **REAL** below was read directly from the files in `data/raw/`
 
 ## 0. TL;DR
 
-> **Status (2026-10-21): Phases 0–2 are done; Phase 3 is next.** The sections below were written before the build; where the build turned out differently they are corrected, and the final numbers are in `evals/results/data_quality.md`.
+> **Status (2026-10-21): Phases 0–3 are done; Phase 4 is next.** The sections below were written before the build; where the build turned out differently they are corrected, and the final numbers are in `evals/results/data_quality.md`.
 
 - **The downloaded data is what we expected, and nothing needs manual extraction.** We read the `.zip` and `.gz` files directly from Python as streams. No unzipping by hand.
 - **There are 5 surprises** where real v20 data differs from the playbook (section 1.2). None blocks the project, but they change a few details.

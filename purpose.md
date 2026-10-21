@@ -1,6 +1,6 @@
 # RedString-CTI — Purpose, Data, Models, and What Each Phase Uses
 
-> **Status (2026-10-21): Phases 0, 1 and 2 are done; Phase 3 (the gold question set) is next.** The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
+> **Status (2026-10-21): Phases 0–3 are done; Phase 4 (the retrieval baselines) is next.** The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
 
 ## 1. The one-paragraph version
 
@@ -139,7 +139,7 @@ Why MCP (Model Context Protocol) in the middle: the same server can be used by o
 | **P0 Setup** | Repo, Python env, Neo4j in Docker, config, smoke test | none | none | Working scaffold (done) |
 | **P1 Download** | Fetch all raw sources with retries, concurrency, hash-based skip; write manifest | All five sources (over the network) | none | `data/raw/*` + `MANIFEST.json` |
 | **P2 Graph** | Parse each source, drop revoked/deprecated/rejected items, create typed nodes and relationships, add KEV flags, compute embeddings, produce a data-quality report and 10 sanity queries. **DONE** | ATT&CK, CWE, CAPEC, NVD, KEV | bge-small (embeddings) | Neo4j graph, `data_quality.md` |
-| **P3 Gold set** | Write 150 questions (30 held out) of 5 kinds: single-hop, multi-hop, aggregation, fuzzy, unanswerable. Correct answers are produced by running a Cypher query on the graph, never typed by hand | The graph | none (questions written by us) | `evals/gold/questions.jsonl` |
+| **P3 Gold set** | Write 150 questions (30 held out) of 5 kinds: single-hop, multi-hop, aggregation, fuzzy, unanswerable. Correct answers are produced by running a Cypher query on the graph, never typed by hand. **DONE**: `evals/gold/questions.jsonl`, 12 questions on AI techniques, a stratified test split and 168 tests | The graph | none (questions written by us) | `evals/gold/questions.jsonl` |
 | **P4 Baselines** | Build the two systems we must beat: (a) vector-only RAG, (b) graph-only Text2Cypher. Build the scorer: ID precision/recall/F1, latency, tokens, $/query | Graph + vectors; gold set | bge-small; Groq LLM | Baseline results table by question type |
 | **P5 MCP server** | Expose the graph as 6 safe, read-only tools. Guardrails: read-only transactions, keyword deny-list, 5 s timeout, row cap, bounded path lengths, audit log | Graph | none | Tested server |
 | **P6 Agent** | LangGraph state machine with routing, citations, budgets (max 8 tool calls) and a deterministic citation check | Graph via MCP | Groq LLM, bge-small (names resolved by the full-text index first, vectors second) | Agent returning answer + citations + paths + cost + latency |
