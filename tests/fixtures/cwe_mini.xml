@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Weakness_Catalog xmlns="http://cwe.mitre.org/cwe-7" Name="CWE" Version="test" Date="2026-01-01">
+  <Weaknesses>
+    <Weakness ID="TEST-1" Name="Test Root Weakness" Abstraction="Class" Structure="Simple" Status="Stable">
+      <Description>A root   weakness
+        spread over lines.</Description>
+    </Weakness>
+    <Weakness ID="TEST-2" Name="Test Child Weakness" Abstraction="Base" Structure="Simple" Status="Draft">
+      <Description>A child weakness.</Description>
+      <Related_Weaknesses>
+        <Related_Weakness Nature="ChildOf" CWE_ID="TEST-1" View_ID="1000" Ordinal="Primary"/>
+        <Related_Weakness Nature="ChildOf" CWE_ID="TEST-1" View_ID="1003"/>
+        <Related_Weakness Nature="PeerOf" CWE_ID="TEST-1" View_ID="1000"/>
+        <Related_Weakness Nature="ChildOf" CWE_ID="TEST-9" View_ID="1000"/>
+      </Related_Weaknesses>
+    </Weakness>
+    <Weakness ID="TEST-9" Name="Dead Weakness" Abstraction="Base" Structure="Simple" Status="Deprecated">
+      <Description>Deprecated.</Description>
+    </Weakness>
+  </Weaknesses>
+  <Categories>
+    <Category ID="TEST-100" Name="A Category" Status="Draft"><Summary>ignored</Summary></Category>
+  </Categories>
+</Weakness_Catalog>

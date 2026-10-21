@@ -56,15 +56,9 @@ def test_parse_real_bundle_counts() -> None:
     assert not leaked
 
 
-def test_load_is_idempotent(driver: Driver) -> None:
+def test_load_is_idempotent(driver: Driver, isolated_test_graph: None) -> None:
     graph = parse_attack(FIXTURE, "test")
     apply_schema(driver)
-    with driver.session() as session:  # never overwrite or delete real data
-        clash = session.run(
-            "MATCH (n) WHERE n.attack_id CONTAINS '-TEST-' AND n.source_version <> 'test' "
-            "RETURN count(n) AS c"
-        ).single()
-    assert clash and clash["c"] == 0
 
     def snapshot() -> tuple[int, int]:
         with driver.session() as session:
@@ -75,18 +69,12 @@ def test_load_is_idempotent(driver: Driver) -> None:
         assert n and e
         return n["c"], e["c"]
 
-    try:
-        load_attack(driver, graph)
-        first = snapshot()
-        load_attack(driver, graph)
-        assert snapshot() == first == (10, 10)
-        with driver.session() as session:
-            rec = session.run(
-                "MATCH (t:Technique {attack_id: 'T-TEST-1.001'}) RETURN labels(t) AS l, t.uid AS uid"
-            ).single()
-        assert rec and "Searchable" in rec["l"] and rec["uid"] == "Technique:T-TEST-1.001"
-    finally:
-        with driver.session() as session:
-            session.run(
-                "MATCH (n {source_version: 'test'}) WHERE n.attack_id CONTAINS '-TEST-' DETACH DELETE n"
-            ).consume()
+    load_attack(driver, graph)
+    first = snapshot()
+    load_attack(driver, graph)
+    assert snapshot() == first == (10, 10)
+    with driver.session() as session:
+        rec = session.run(
+            "MATCH (t:Technique {attack_id: 'T-TEST-1.001'}) RETURN labels(t) AS l, t.uid AS uid"
+        ).single()
+    assert rec and "Searchable" in rec["l"] and rec["uid"] == "Technique:T-TEST-1.001"

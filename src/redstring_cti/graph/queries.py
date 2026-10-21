@@ -34,6 +34,27 @@ SANITY_QUERIES: dict[str, tuple[str, dict[str, Any], int]] = {
         {},
         2,
     ),
+    "cwes_exploited_by_capec_66": (
+        "MATCH (:CAPEC {capec_id: $cid})-[:EXPLOITS]->(w:CWE) RETURN w.cwe_id AS id",
+        {"cid": "CAPEC-66"},
+        2,
+    ),
+    "techniques_mapped_from_spear_phishing": (
+        "MATCH (:CAPEC {capec_id: $cid})-[:MAPS_TO]->(t:Technique) RETURN t.attack_id AS id",
+        {"cid": "CAPEC-163"},
+        5,
+    ),
+    "cwe_parents_of_sql_injection": (
+        "MATCH (:CWE {cwe_id: $wid})-[:CHILD_OF]->(p:CWE) RETURN p.cwe_id AS id",
+        {"wid": "CWE-89"},
+        2,
+    ),
+    "apt29_techniques_with_a_capec_pattern": (
+        """MATCH (:Group {attack_id: $gid})-[:USES]->(t:Technique)<-[:MAPS_TO]-(c:CAPEC)
+           RETURN DISTINCT t.attack_id AS id""",
+        {"gid": "G0016"},
+        15,
+    ),
     "groups_sharing_5_techniques_with_apt29": (
         """MATCH (:Group {attack_id: $gid})-[:USES]->(t:Technique)<-[:USES]-(o:Group)
            WHERE o.attack_id <> $gid

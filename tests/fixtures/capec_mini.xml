@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Attack_Pattern_Catalog xmlns="http://capec.mitre.org/capec-3" Name="CAPEC" Version="test" Date="2026-01-01">
+  <Attack_Patterns>
+    <Attack_Pattern ID="TEST-1" Name="Test Pattern" Abstraction="Standard" Status="Draft">
+      <Description>A test pattern.</Description>
+      <Likelihood_Of_Attack>High</Likelihood_Of_Attack>
+      <Typical_Severity>Medium</Typical_Severity>
+      <Related_Weaknesses>
+        <Related_Weakness CWE_ID="TEST-1"/>
+        <Related_Weakness CWE_ID="TEST-2"/>
+      </Related_Weaknesses>
+      <Taxonomy_Mappings>
+        <Taxonomy_Mapping Taxonomy_Name="WASC"><Entry_ID>19</Entry_ID></Taxonomy_Mapping>
+        <Taxonomy_Mapping Taxonomy_Name="ATTACK"><Entry_ID>-TEST-1.001</Entry_ID><Entry_Name>x</Entry_Name></Taxonomy_Mapping>
+        <Taxonomy_Mapping Taxonomy_Name="ATTACK"><Entry_ID>-TEST-404</Entry_ID></Taxonomy_Mapping>
+      </Taxonomy_Mappings>
+    </Attack_Pattern>
+    <Attack_Pattern ID="TEST-2" Name="Test Child Pattern" Abstraction="Detailed" Status="Stable">
+      <Description>A child pattern.</Description>
+      <Related_Attack_Patterns>
+        <Related_Attack_Pattern Nature="ChildOf" CAPEC_ID="TEST-1"/>
+        <Related_Attack_Pattern Nature="ChildOf" CAPEC_ID="TEST-3"/>
+        <Related_Attack_Pattern Nature="CanPrecede" CAPEC_ID="TEST-1"/>
+      </Related_Attack_Patterns>
+    </Attack_Pattern>
+    <Attack_Pattern ID="TEST-3" Name="Dead Pattern" Abstraction="Standard" Status="Deprecated"/>
+    <Attack_Pattern ID="TEST-4" Name="Old Pattern" Abstraction="Standard" Status="Obsolete"/>
+  </Attack_Patterns>
+</Attack_Pattern_Catalog>

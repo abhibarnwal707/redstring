@@ -18,3 +18,21 @@ def driver() -> Iterator[Driver]:
         pytest.skip("Neo4j is not running (make up)")
     yield drv
     drv.close()
+
+
+_TEST_KEY = "coalesce(n.attack_id, n.cwe_id, n.capec_id) CONTAINS '-TEST-'"
+
+
+@pytest.fixture
+def isolated_test_graph(driver: Driver) -> Iterator[None]:
+    """Fixture nodes use '-TEST-' ids and source_version 'test'. Refuse to run if anything
+    else carries such an id, and delete only nodes matching both conditions afterwards."""
+    with driver.session() as session:
+        clash = session.run(
+            f"MATCH (n) WHERE {_TEST_KEY} AND n.source_version <> 'test' RETURN count(n) AS c"
+        ).single()
+        assert clash and clash["c"] == 0, "'-TEST-' ids exist outside source_version 'test'"
+        session.run(f"MATCH (n) WHERE {_TEST_KEY} AND n.source_version = 'test' DETACH DELETE n").consume()
+    yield
+    with driver.session() as session:
+        session.run(f"MATCH (n) WHERE {_TEST_KEY} AND n.source_version = 'test' DETACH DELETE n").consume()

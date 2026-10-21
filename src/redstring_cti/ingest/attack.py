@@ -6,25 +6,23 @@ without Neo4j. `load_attack` writes the records with idempotent MERGEs.
 
 import logging
 from collections import Counter
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import orjson
 from neo4j import Driver
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from redstring_cti.graph.loader import write_batches
-from redstring_cti.ingest.common import strip_markup
+from redstring_cti.graph.loader import write_edges, write_nodes
+from redstring_cti.ingest.common import Edge, Node, strip_markup
 
 log = logging.getLogger(__name__)
 
 SOURCE = "mitre-attack"
 
-Label = Literal["Group", "Technique", "Tactic", "Software", "Mitigation", "Campaign"]
-Rel = Literal["USES", "MITIGATES", "SUBTECHNIQUE_OF", "ATTRIBUTED_TO", "IN_TACTIC"]
+KEY_PROP = "attack_id"
 
-STIX_TO_LABEL: dict[str, Label] = {
+STIX_TO_LABEL: dict[str, str] = {
     "intrusion-set": "Group",
     "attack-pattern": "Technique",
     "x-mitre-tactic": "Tactic",
@@ -33,14 +31,14 @@ STIX_TO_LABEL: dict[str, Label] = {
     "course-of-action": "Mitigation",
     "campaign": "Campaign",
 }
-STIX_TO_REL: dict[str, Rel] = {
+STIX_TO_REL: dict[str, str] = {
     "uses": "USES",
     "mitigates": "MITIGATES",
     "subtechnique-of": "SUBTECHNIQUE_OF",
     "attributed-to": "ATTRIBUTED_TO",
 }
 # (relationship, source label, target label) combinations we accept
-ALLOWED_PAIRS: set[tuple[Rel, Label, Label]] = {
+ALLOWED_PAIRS: set[tuple[str, str, str]] = {
     ("USES", "Group", "Technique"),
     ("USES", "Software", "Technique"),
     ("USES", "Campaign", "Technique"),
@@ -50,25 +48,6 @@ ALLOWED_PAIRS: set[tuple[Rel, Label, Label]] = {
     ("SUBTECHNIQUE_OF", "Technique", "Technique"),
     ("ATTRIBUTED_TO", "Campaign", "Group"),
 }
-
-
-class Node(BaseModel):
-    label: Label
-    key: str  # ATT&CK id, e.g. T1566.001
-    props: dict[str, Any]
-
-    @property
-    def uid(self) -> str:
-        return f"{self.label}:{self.key}"
-
-
-class Edge(BaseModel):
-    rel: Rel
-    src_label: Label
-    src_key: str
-    dst_label: Label
-    dst_key: str
-    props: dict[str, Any] = Field(default_factory=dict)
 
 
 class AttackGraph(BaseModel):
@@ -86,7 +65,7 @@ def _external_id(obj: dict[str, Any]) -> str | None:
     return None
 
 
-def _node_props(obj: dict[str, Any], label: Label) -> dict[str, Any]:
+def _node_props(obj: dict[str, Any], label: str) -> dict[str, Any]:
     props: dict[str, Any] = {
         "name": obj.get("name"),
         "description": strip_markup(obj.get("description")),
@@ -107,6 +86,19 @@ def _node_props(obj: dict[str, Any], label: Label) -> dict[str, Any]:
         props["first_seen"] = obj.get("first_seen")
         props["last_seen"] = obj.get("last_seen")
     return {k: v for k, v in props.items() if v is not None}
+
+
+def _edge(rel: str, src: Node, dst: Node, props: dict[str, Any]) -> Edge:
+    return Edge(
+        rel=rel,
+        src_label=src.label,
+        src_prop=src.key_prop,
+        src_key=src.key,
+        dst_label=dst.label,
+        dst_prop=dst.key_prop,
+        dst_key=dst.key,
+        props=props,
+    )
 
 
 def parse_attack(path: Path, version: str) -> AttackGraph:
@@ -130,7 +122,7 @@ def parse_attack(path: Path, version: str) -> AttackGraph:
         if attack_id is None:
             stats[f"skipped_no_attack_id:{obj['type']}"] += 1
             continue
-        node = Node(label=label, key=attack_id, props=_node_props(obj, label))
+        node = Node(label=label, key_prop=KEY_PROP, key=attack_id, props=_node_props(obj, label))
         nodes.append(node)
         by_stix[obj["id"]] = node
         raw_by_stix[obj["id"]] = obj
@@ -151,14 +143,7 @@ def parse_attack(path: Path, version: str) -> AttackGraph:
             continue
         description = strip_markup(obj.get("description"))
         edges.append(
-            Edge(
-                rel=rel,
-                src_label=src.label,
-                src_key=src.key,
-                dst_label=dst.label,
-                dst_key=dst.key,
-                props={"description": description} if description else {},
-            )
+            _edge(rel, src, dst, {"description": description} if description else {})
         )
 
     tactic_by_short = {
@@ -175,15 +160,7 @@ def parse_attack(path: Path, version: str) -> AttackGraph:
                 stats["in_tactic_unresolved"] += 1
                 continue
             tech = by_stix[stix_id]
-            edges.append(
-                Edge(
-                    rel="IN_TACTIC",
-                    src_label="Technique",
-                    src_key=tech.key,
-                    dst_label="Tactic",
-                    dst_key=tactic.key,
-                )
-            )
+            edges.append(_edge("IN_TACTIC", tech, tactic, {}))
 
     for n in nodes:
         stats[f"nodes:{n.label}"] += 1
@@ -192,49 +169,10 @@ def parse_attack(path: Path, version: str) -> AttackGraph:
     return AttackGraph(version=version, nodes=nodes, edges=edges, stats=dict(sorted(stats.items())))
 
 
-# Labels and relationship names come from the Literal constants above, never from data.
-_NODE_QUERY = """
-UNWIND $rows AS row
-MERGE (n:{label} {{attack_id: row.key}})
-SET n += row.props, n:Searchable, n.uid = row.uid,
-    n.source = $source, n.source_version = $version, n.ingested_at = $ingested_at
-"""
-_EDGE_QUERY = """
-UNWIND $rows AS row
-MATCH (a:{src} {{attack_id: row.src}})
-MATCH (b:{dst} {{attack_id: row.dst}})
-MERGE (a)-[r:{rel}]->(b)
-SET r += row.props, r.source = $source
-"""
-
-
 def load_attack(driver: Driver, graph: AttackGraph) -> None:
-    ingested_at = datetime.now(UTC).isoformat(timespec="seconds")
-
-    by_label: dict[Label, list[dict[str, Any]]] = {}
-    for n in graph.nodes:
-        by_label.setdefault(n.label, []).append({"key": n.key, "uid": n.uid, "props": n.props})
-    for label, rows in by_label.items():
-        write_batches(
-            driver,
-            _NODE_QUERY.format(label=label),
-            rows,
-            source=SOURCE,
-            version=graph.version,
-            ingested_at=ingested_at,
-        )
-        log.info("loaded %d %s nodes", len(rows), label)
-
-    by_triple: dict[tuple[Rel, Label, Label], list[dict[str, Any]]] = {}
-    for e in graph.edges:
-        by_triple.setdefault((e.rel, e.src_label, e.dst_label), []).append(
-            {"src": e.src_key, "dst": e.dst_key, "props": e.props}
-        )
-    for (rel, src, dst), rows in by_triple.items():
-        write_batches(
-            driver, _EDGE_QUERY.format(rel=rel, src=src, dst=dst), rows, source=SOURCE
-        )
-        log.info("loaded %d %s edges (%s -> %s)", len(rows), rel, src, dst)
-
-    skipped = {k: v for k, v in graph.stats.items() if k.startswith(("skipped", "edges_dropped", "in_tactic"))}
+    write_nodes(driver, graph.nodes, source=SOURCE, version=graph.version)
+    write_edges(driver, graph.edges, source=SOURCE)
+    skipped = {
+        k: v for k, v in graph.stats.items() if k.startswith(("skipped", "edges_dropped", "in_tactic"))
+    }
     log.info("skipped/dropped: %s", skipped)
