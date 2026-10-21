@@ -20,7 +20,7 @@ def driver() -> Iterator[Driver]:
     drv.close()
 
 
-_TEST_KEY = "coalesce(n.attack_id, n.cwe_id, n.capec_id) CONTAINS '-TEST-'"
+_TEST_KEY = "coalesce(n.attack_id, n.cwe_id, n.capec_id, n.cve_id) CONTAINS '-TEST-'"
 
 
 @pytest.fixture

@@ -55,6 +55,18 @@ SANITY_QUERIES: dict[str, tuple[str, dict[str, Any], int]] = {
         {"gid": "G0016"},
         15,
     ),
+    "kev_cves_for_cwe_89": (
+        "MATCH (v:CVE {kev: true})-[:HAS_WEAKNESS]->(:CWE {cwe_id: $wid}) RETURN v.cve_id AS id",
+        {"wid": "CWE-89"},
+        10,
+    ),
+    "full_chain_apt29_to_kev_cves": (
+        """MATCH p=(g:Group {attack_id: $gid})-[:USES]->(t:Technique)<-[:MAPS_TO]-(c:CAPEC)
+                 -[:EXPLOITS]->(w:CWE)<-[:HAS_WEAKNESS]-(v:CVE {kev: true})
+           RETURN t.attack_id AS technique, c.capec_id AS capec, w.cwe_id AS cwe, v.cve_id AS cve LIMIT 500""",
+        {"gid": "G0016"},
+        50,
+    ),
     "groups_sharing_5_techniques_with_apt29": (
         """MATCH (:Group {attack_id: $gid})-[:USES]->(t:Technique)<-[:USES]-(o:Group)
            WHERE o.attack_id <> $gid

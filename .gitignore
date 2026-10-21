@@ -15,3 +15,5 @@ finetune/data/*
 
 # Local Claude Code context (not committed)
 CLAUDE.md
+visualizer.md
+purpose.md

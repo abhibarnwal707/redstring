@@ -76,7 +76,9 @@ def _ident(*names: str) -> None:
             raise ValueError(f"unsafe identifier: {name!r}")
 
 
-def write_nodes(driver: Driver, nodes: Iterable[Node], *, source: str, version: str) -> dict[str, int]:
+def write_nodes(
+    driver: Driver, nodes: Iterable[Node], *, source: str, version: str, quiet: bool = False
+) -> dict[str, int]:
     """MERGE nodes grouped by (label, key property). Returns rows written per label."""
     ingested_at = datetime.now(UTC).isoformat(timespec="seconds")
     groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
@@ -91,11 +93,14 @@ def write_nodes(driver: Driver, nodes: Iterable[Node], *, source: str, version: 
         written[label] = write_batches(
             driver, query, rows, source=source, version=version, ingested_at=ingested_at
         )
-        log.info("loaded %d %s nodes", written[label], label)
+        if not quiet:
+            log.info("loaded %d %s nodes", written[label], label)
     return written
 
 
-def write_edges(driver: Driver, edges: Iterable[Edge], *, source: str) -> dict[str, int]:
+def write_edges(
+    driver: Driver, edges: Iterable[Edge], *, source: str, quiet: bool = False
+) -> dict[str, int]:
     """MERGE edges grouped by (rel, endpoint labels). Returns rows written per relationship type."""
     groups: dict[tuple[str, str, str, str, str], list[dict[str, Any]]] = {}
     for e in edges:
@@ -110,7 +115,8 @@ def write_edges(driver: Driver, edges: Iterable[Edge], *, source: str) -> dict[s
         )
         n = write_batches(driver, query, rows, source=source)
         written[rel] = written.get(rel, 0) + n
-        log.info("loaded %d %s edges (%s -> %s)", n, rel, src, dst)
+        if not quiet:
+            log.info("loaded %d %s edges (%s -> %s)", n, rel, src, dst)
     return written
 
 
@@ -137,6 +143,8 @@ def main() -> None:
     from redstring_cti.ingest.attack import load_attack, parse_attack
     from redstring_cti.ingest.capec import load_capec, parse_capec
     from redstring_cti.ingest.cwe import load_cwe, parse_cwe
+    from redstring_cti.ingest.kev import parse_kev, sync_kev
+    from redstring_cti.ingest.nvd import feed_paths, load_nvd
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     logging.getLogger("neo4j").setLevel(logging.WARNING)  # drop "index already exists" notices
@@ -147,6 +155,8 @@ def main() -> None:
         load_attack(driver, graph)
         load_cwe(driver, parse_cwe(RAW_DIR / "cwec_latest.xml.zip"))
         load_capec(driver, parse_capec(RAW_DIR / "capec_latest.xml"))
+        load_nvd(driver, feed_paths(RAW_DIR))
+        sync_kev(driver, parse_kev(RAW_DIR / "known_exploited_vulnerabilities.json"))
         counts = graph_counts(driver)
         log.info("nodes: %s", counts["nodes"])
         log.info("edges: %s", counts["edges"])
