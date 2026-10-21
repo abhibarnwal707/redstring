@@ -1,4 +1,4 @@
-.PHONY: download load test lint eval up down
+.PHONY: download load embed test lint eval up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -20,3 +20,6 @@ up:
 
 down:
 	docker compose down
+
+embed:
+	uv run python -m redstring_cti.graph.embeddings

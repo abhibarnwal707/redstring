@@ -58,7 +58,7 @@ _IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _NODE_QUERY = """
 UNWIND $rows AS row
 MERGE (n:{label} {{{key_prop}: row.key}})
-SET n += row.props, n:Searchable, n.uid = row.uid,
+SET n += row.props, n:Searchable{extra}, n.uid = row.uid,
     n.source = $source, n.source_version = $version, n.ingested_at = $ingested_at
 """
 _EDGE_QUERY = """
@@ -89,7 +89,8 @@ def write_nodes(
     written: dict[str, int] = {}
     for (label, key_prop), rows in groups.items():
         _ident(label, key_prop)
-        query = _NODE_QUERY.format(label=label, key_prop=key_prop)
+        extra = "" if label == "CVE" else ":Reference"  # concept nodes vs CVEs: separate vector indexes
+        query = _NODE_QUERY.format(label=label, key_prop=key_prop, extra=extra)
         written[label] = write_batches(
             driver, query, rows, source=source, version=version, ingested_at=ingested_at
         )

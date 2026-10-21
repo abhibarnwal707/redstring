@@ -8,7 +8,14 @@ CREATE CONSTRAINT capec_id   IF NOT EXISTS FOR (n:CAPEC)     REQUIRE n.capec_id 
 CREATE CONSTRAINT cwe_id     IF NOT EXISTS FOR (n:CWE)       REQUIRE n.cwe_id IS UNIQUE;
 CREATE CONSTRAINT cve_id     IF NOT EXISTS FOR (n:CVE)       REQUIRE n.cve_id IS UNIQUE;
 CREATE CONSTRAINT searchable_uid IF NOT EXISTS FOR (n:Searchable) REQUIRE n.uid IS UNIQUE;
-CREATE FULLTEXT INDEX searchable_text IF NOT EXISTS
-  FOR (n:Group|Technique|Software|Mitigation|CAPEC|CWE|CVE) ON EACH [n.name, n.description];
-CREATE VECTOR INDEX searchable_vec IF NOT EXISTS FOR (n:Searchable) ON n.embedding
+// Retired: one mixed vector index let 394K CVEs crowd out the 3.3K ATT&CK/CAPEC/CWE concept nodes.
+DROP INDEX searchable_vec IF EXISTS;
+// Replaced by text_search, which also indexes aliases (needed to resolve "Cozy Bear" -> APT29).
+DROP INDEX searchable_text IF EXISTS;
+CREATE FULLTEXT INDEX text_search IF NOT EXISTS
+  FOR (n:Group|Technique|Software|Mitigation|Campaign|CAPEC|CWE|CVE) ON EACH [n.name, n.description, n.aliases];
+// Concepts (every non-CVE node carries :Reference) and CVEs are searched separately.
+CREATE VECTOR INDEX ref_vec IF NOT EXISTS FOR (n:Reference) ON n.embedding
+  OPTIONS {indexConfig: {`vector.dimensions`: 384, `vector.similarity_function`: 'cosine'}};
+CREATE VECTOR INDEX cve_vec IF NOT EXISTS FOR (n:CVE) ON n.embedding
   OPTIONS {indexConfig: {`vector.dimensions`: 384, `vector.similarity_function`: 'cosine'}};
