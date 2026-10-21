@@ -1,0 +1,7 @@
+id,type,hops,style,correct,f1,precision,recall,order_exact,said_not_found,final_kind,wall_s,service_s,waited_s,prompt_tokens,completion_tokens,cost_usd,models,llm_calls,rows,error,unsupported_ids,question
+q019,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,8.578,6.678,1.9,1552,190,0.0,openrouter:minimax/minimax-m3.1-flash:free,2,6,,,What software is associated with APT3?
+q045,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,8.947,6.895,2.052,3166,311,0.0,openrouter:minimax/minimax-m3.1-flash:free,3,10,,,Which credential access techniques does APT28 use?
+q072,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,6.138,4.744,1.394,1761,275,0.0,openrouter:minimax/minimax-m3.1-flash:free,2,8,,,"Through CAPEC, which CWEs relate to Password Guessing (T1110.001)?"
+q090,multi_hop,4,list,True,1.0,1.0,1.0,,False,ids,16.672,14.886,1.786,3772,501,0.0,openrouter:minimax/minimax-m3.1-flash:free,3,18,,,Which KEV CVEs with a CVSS score of at least 9.0 have a weakness tied via CAPEC to techniques used by LAPSUS$?
+q131,semantic,1,list,False,0.5,0.3333333333333333,1.0,,False,ids,5.648,4.787,0.861,2179,220,0.0,openrouter:minimax/minimax-m3.1-flash:free,2,32,,,How do attackers trick users into clicking a malicious link in an email or message?
+q142,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,6.759,3.823,2.936,1539,104,0.0,openrouter:minimax/minimax-m3.1-flash:free,2,0,,,Which Microsoft security update (KB article) fixes CVE-2024-38112?

@@ -6,7 +6,7 @@ Everything marked **REAL** below was read directly from the files in `data/raw/`
 
 ## 0. TL;DR
 
-> **Status (2026-10-21): Phases 0–6 are done; Phase 7 is next.** The sections below were written before the build; where the build turned out differently they are corrected, and the final numbers are in `evals/results/data_quality.md`.
+> **Status (2026-10-21): Phases 0–6 and 8 are done; Phase 7 (needs Groq tokens) and Phase 9 (Kaggle training) are next.** The sections below were written before the build; where the build turned out differently they are corrected, and the final numbers are in `evals/results/data_quality.md`.
 
 - **The downloaded data is what we expected, and nothing needs manual extraction.** We read the `.zip` and `.gz` files directly from Python as streams. No unzipping by hand.
 - **There are 5 surprises** where real v20 data differs from the playbook (section 1.2). None blocks the project, but they change a few details.
@@ -219,27 +219,27 @@ The agent receives a question, resolves names to IDs ("Cozy Bear" → G0016 usin
 **Input (a chunk of text):** a real ATT&CK procedure sentence, cleaned of the markdown link and citations.
 > APT29 has used spearphishing emails with an attachment to deliver files with exploits to initial victims.
 
-**Target output (what we want the model to produce)** (ILLUSTRATIVE formatting; the content is derived from the real edge `G0016 -USES-> T1566.001`):
+**Target output (what we want the model to produce)** (built from the real edge `G0016 -USES-> T1566.001`; the entity carries only its text and type, because turning "APT29" into the id G0016 is a lookup the graph does, not something to memorise):
 ```json
-{"entities":[{"text":"APT29","type":"THREAT_ACTOR","attack_id":"G0016"}],
- "techniques":[{"attack_id":"T1566.001","evidence":"spearphishing emails with an attachment"}],
+{"entities":[{"text":"APT29","type":"THREAT_ACTOR"}],
+ "techniques":[{"attack_id":"T1566.001"}],
  "relations":[{"head":"APT29","relation":"USES","tail":"T1566.001"}]}
 ```
 **Stored as one line of a chat-format JSONL file:**
 ```json
 {"messages":[
- {"role":"system","content":"Extract CTI entities, ATT&CK techniques and relations as JSON matching the schema."},
+ {"role":"system","content":"Extract the cyber-threat entities, MITRE ATT&CK technique ids and relations from the text. Reply with minified JSON only: ..."},
  {"role":"user","content":"APT29 has used spearphishing emails with an attachment to deliver files with exploits to initial victims."},
- {"role":"assistant","content":"{\"entities\":[{\"text\":\"APT29\",\"type\":\"THREAT_ACTOR\",\"attack_id\":\"G0016\"}],\"techniques\":[{\"attack_id\":\"T1566.001\",\"evidence\":\"spearphishing emails with an attachment\"}],\"relations\":[{\"head\":\"APT29\",\"relation\":\"USES\",\"tail\":\"T1566.001\"}]}"}
+ {"role":"assistant","content":"{\"entities\":[{\"text\":\"APT29\",\"type\":\"THREAT_ACTOR\"}],\"techniques\":[{\"attack_id\":\"T1566.001\"}],\"relations\":[{\"head\":\"APT29\",\"relation\":\"USES\",\"tail\":\"T1566.001\"}]}"}
 ]}
 ```
 
 ### 5.3 Where the training data comes from
 | Source | Gives | Status |
 |---|---|---|
-| **ATT&CK `USES` descriptions** (already downloaded) | **17,636** sentences that link an actor/malware/tool/campaign to a technique (10,739 malware, 4,815 group, 1,213 campaign, 869 tool). Labels are known from the edge itself, so no manual labelling | Available now |
-| TRAM-Clean | Sentences labelled with technique IDs | To download in Phase 8; verify the source and licence |
-| AnnoCTR | 120 real annotated reports (entities + ATT&CK concepts) | To download in Phase 8; verify the licence |
+| **ATT&CK `USES` descriptions** (already downloaded) | **17,173** usable sentences (of 17,636) that link an actor/malware/tool/campaign to a technique. MITRE links every name in the sentence, so entity, technique and relation labels come free and accurate. Capped at 10 per technique (the median technique has 7, the busiest 459) | **Built** (3,911 in training) |
+| ~~TRAM-Clean~~ | Not used: "TRAM-Clean" is a cleaning *protocol* in a paper, not a download, and raw TRAM covers 50 techniques with documented label noise | Skipped on purpose |
+| AnnoCTR | 120 real annotated reports (CC BY-SA 4.0). Converted to **853 chunks** of about 1,400 characters: entities from the sentence-level layer, technique ids from the linking layer mapped to ATT&CK v20 (chunks with an unmappable technique dropped). The official train/dev/test report split is kept | **Built** (512 train, 115 validation, 226 test) |
 
 **Caveat that matters:** ATT&CK descriptions are short, edited, tidy sentences. Real threat reports are long, messy and full of noise. A model trained mostly on tidy sentences may do worse on real reports. That's why the hand-verified test set uses held-out **real report chunks** (AnnoCTR/TRAM), and why Phase 10 compares against the base model and an API model.
 
@@ -247,7 +247,7 @@ The agent receives a question, resolves names to IDs ("Cozy Bear" → G0016 usin
 
 ```mermaid
 flowchart TD
-  A["Raw sources<br/>ATT&CK USES text, TRAM-Clean, AnnoCTR"] --> B["Clean + normalise<br/>strip markdown links and (Citation: ...), fix IDs"]
+  A["Raw sources<br/>ATT&CK USES text, AnnoCTR"] --> B["Clean + normalise<br/>strip markdown links and (Citation: ...), fix IDs"]
   B --> C["Label to the schema<br/>entities, techniques, relations"]
   C --> D["Chunk to ~512 tokens<br/>keep doc_id on every chunk"]
   D --> E["SPLIT BY DOCUMENT<br/>train / validation / test<br/>assert: no doc in two splits"]

@@ -461,3 +461,19 @@ def test_repair_end_to_end_uses_the_template_the_planner_missed(box: DirectToolb
     llm2 = ScriptedLLM(plan(route="graph", pattern="cypher", target="CWE"))
     r2 = agent(llm2, box).run("Which weaknesses cover writing data past the end of a memory buffer?")
     assert r2.route == "vector" and r2.tool_log[0]["tool"] == "semantic_search" and "cypher" not in llm2.kinds()
+
+
+def test_a_kev_restriction_always_uses_find_paths_even_for_a_one_hop_route() -> None:
+    """Found by running the acceptance set on another model: get_neighbors has no KEV filter, so it returned the
+    first 200 of 300+ CWE-89 CVEs, almost none of them KEV."""
+    p = repair_plan(Plan(route="graph", pattern="neighbors", target_label="CVE"), "Which actively exploited (KEV) CVEs have the weakness CWE-89?", [ent("CWE", "CWE-89")], [])
+    assert p.pattern == "paths" and p.kev_only
+    plain = repair_plan(Plan(route="graph", pattern="paths", target_label="CVE"), "Which CVEs have the weakness CWE-89?", [ent("CWE", "CWE-89")], [])
+    assert plain.pattern == "neighbors" and not plain.kev_only  # without the restriction the cheap template is right
+
+
+def test_kev_question_end_to_end_reaches_the_filtering_tool(box: DirectToolbox) -> None:
+    llm = ScriptedLLM(plan(pattern="neighbors", target="CVE"))  # the planner forgot both the pattern and the KEV flag
+    r = agent(llm, box).run("Which actively exploited (KEV) CVEs have the weakness CWE-89?")
+    assert [t["tool"] for t in r.tool_log] == ["find_paths"] and r.tool_log[0]["args"]["kev_only"] is True
+    assert len(r.citations) >= 31

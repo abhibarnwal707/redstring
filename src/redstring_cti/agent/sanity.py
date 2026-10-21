@@ -87,7 +87,7 @@ def main() -> None:
         toolbox = DirectToolbox(tools.Context(driver=driver, embed=lambda t: embed_query(model, t)))
     agent = Agent(LLMClient(models=chain), toolbox, AgentConfig(), fewshot=text2cypher.build_fewshot(load_gold()))
     passed = 0
-    print(f"{'#':>2} {'ok':3} {'F1':>5} {'route':8} {'pattern':9} {'tools':>5} {'llm':>3} {'tokens':>6}  question")
+    print(f"{'#':>2} {'ok':3} {'F1':>5} {'route':8} {'pattern':9} {'tools':>5} {'llm':>3} {'tokens':>6}  {'model':30} question")
     try:
         for i, (case, gold) in enumerate(zip(CASES, cases, strict=True), start=1):
             r = agent.run(case.question)
@@ -95,7 +95,7 @@ def main() -> None:
             cited_ok = bool(r.citations) and all(c in r.citations for c in score["predicted"] if c in gold.gold_ids)
             ok = score["correct"] and cited_ok and r.verdict == "pass"
             passed += ok
-            print(f"{i:>2} {'OK' if ok else 'BAD':3} {score['f1']:5.2f} {r.route:8} {r.pattern or '-':9} {r.tool_calls:>5} {r.llm_calls:>3} {r.tokens:>6}  {case.question[:70]}")
+            print(f"{i:>2} {'OK' if ok else 'BAD':3} {score['f1']:5.2f} {r.route:8} {r.pattern or '-':9} {r.tool_calls:>5} {r.llm_calls:>3} {r.tokens:>6}  {'+'.join(m.split('/')[-1] for m in r.models)[:30]:30} {case.question[:60]}")
             if not ok:
                 print(f"     verdict={r.verdict} predicted={score['predicted'][:8]} gold={gold.gold_ids[:8]} caveats={r.caveats}")
     finally:

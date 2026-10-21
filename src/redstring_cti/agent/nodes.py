@@ -82,7 +82,8 @@ def repair_plan(plan: Plan, question: str, entities: list[dict[str, Any]], unres
     if target and target != label:
         routes = enumerate_metapaths(label, target)
         if routes:  # a schema route exists: use the template that follows it
-            plan.pattern = "neighbors" if routes[0].hops == 1 else "paths"
+            # get_neighbors cannot filter on KEV, so a KEV restriction always needs find_paths (kev_only).
+            plan.pattern = "neighbors" if routes[0].hops == 1 and not plan.kev_only else "paths"
     elif plan.pattern == "lookup" and RELATION_CUES.search(question):
         plan.pattern = "neighbors"  # "what software is associated with X" asks for links, not X's own properties
     return plan

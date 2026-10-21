@@ -1,6 +1,6 @@
 # RedString-CTI — Purpose, Data, Models, and What Each Phase Uses
 
-> **Status (2026-10-21): Phases 0–6 are done; Phase 7 (evaluation and iteration) is next.** Two runs wait for the Groq daily token quota to reset: finishing the Text2Cypher dev evaluation (Phase 4) and re-validating the agent's sanity questions on the primary model (Phase 6). The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
+> **Status (2026-10-21): Phases 0–6 and 8 are done; Phase 7 (evaluation, needs Groq tokens) and Phase 9 (QLoRA training on Kaggle) are next.** Two runs wait for the Groq daily token quota to reset: finishing the Text2Cypher dev evaluation (Phase 4) and re-validating the agent's sanity questions on the primary model (Phase 6). The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
 
 ## 1. The one-paragraph version
 
@@ -51,8 +51,8 @@ All are public, free, and maintained by well-known organisations.
 | Dataset | What it gives | Notes |
 |---|---|---|
 | ATT&CK procedure examples | Sentences like "APT29 used X to do Y" labelled with the technique. Comes from the ATT&CK file we already have. | High-quality labels |
-| TRAM-Clean (cleaned) | Sentences labelled with ATT&CK technique IDs | Verify source/licence when we reach P8 |
-| AnnoCTR | 120 annotated threat reports (entities + ATT&CK concepts) | CC-BY-SA licence; verify when we reach P8 |
+| ~~TRAM-Clean~~ | Not used (a cleaning protocol in a paper, not a download; raw TRAM is noisy) | Skipped |
+| AnnoCTR | 120 annotated threat reports (entities + ATT&CK techniques), CC BY-SA 4.0, verified | 853 chunks, the official report split kept |
 
 ### Where things are stored
 
@@ -145,7 +145,7 @@ Why MCP (Model Context Protocol) in the middle: the same server can be used by o
 | **P5 MCP server** | Expose the graph as 6 safe, read-only tools. Guardrails: read-only transactions, keyword deny-list, 5 s timeout, row cap, bounded path lengths, audit log | Graph | none | Tested server |
 | **P6 Agent** | LangGraph state machine with routing, citations, budgets (max 8 tool calls) and a deterministic citation check | Graph via MCP | Groq LLM, bge-small (names resolved by the full-text index first, vectors second) | Agent returning answer + citations + paths + cost + latency |
 | **P7 Evaluation** | Compare vector-RAG vs Text2Cypher vs the agent; error analysis; ablations; one final run on the held-out 30 | Gold set | Groq LLM (and optionally one API model) | `rag_comparison.md` |
-| **P8 Fine-tune data** | Build `{text → JSON}` training examples; split **by document**, never by sentence; hand-verify the test set | ATT&CK procedure text, TRAM-Clean, AnnoCTR | none (optionally a teacher LLM for extra labels, training only) | Train/val/test JSONL |
+| **P8 Fine-tune data** | Build `{text → JSON}` training examples; split **by document**, never by sentence; hand-verify the test set | ATT&CK procedure text, AnnoCTR | none (no model calls were needed) | Train/val/test JSONL. **DONE**: 4,423 train / 265 validation / 226 + 600 test |
 | **P9 QLoRA** | Fine-tune Qwen3-1.7B on Kaggle | P8 dataset | Qwen3-1.7B + LoRA | Adapter on Hugging Face Hub |
 | **P10 Extractor eval** | Compare base, fine-tuned, fine-tuned + constrained decoding, and an API model on entity F1, technique F1, relation F1, JSON validity, hallucinated IDs, latency, cost | Hand-verified test set; the graph (to check IDs exist) | The models listed | `extractor_comparison.md` |
 | **P11 Integration** | Convert to GGUF, serve with Ollama, `make ingest-report URL=...`; link extracted entities to graph nodes; mark unmatched ones provisional | New threat reports | Extractor (GGUF), bge-small for linking | Graph updated from raw reports |

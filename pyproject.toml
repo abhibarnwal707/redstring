@@ -47,6 +47,8 @@ dev = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+testpaths = ["tests"]  # never collect third-party repos cloned under data/
+norecursedirs = ["data", ".venv", "mlruns", "finetune"]
 
 [[tool.mypy.overrides]]
 module = ["ijson"]
