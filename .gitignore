@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+mlruns/
+data/neo4j/
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+finetune/data/*
