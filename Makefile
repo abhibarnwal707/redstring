@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -47,3 +47,6 @@ sanity-agent:
 
 finetune-data:
 	uv run python finetune/build_dataset.py
+
+kaggle-notebook:
+	uv run python scripts/py_to_ipynb.py finetune/notebooks/train_qlora.py finetune/notebooks/train_qlora.ipynb

@@ -27,6 +27,7 @@ SPLIT_NAMES = {"train": "train", "dev": "val", "test": "test"}
 ENTITY_TYPES = {"GROUP": "THREAT_ACTOR", "MALWARE": "MALWARE", "TOOL": "TOOL"}
 _CVE = re.compile(r"\bCVE-\d{4}-\d{4,}\b")
 _LINK_KIND = re.compile(r"attack\.mitre\.org/(\w+)/")
+_URL_SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+){3,}$")
 _NORM = re.compile(r"[^a-z0-9]+")
 
 
@@ -111,6 +112,7 @@ Annotated = tuple[str, list[Entity], set[str], bool]  # sentence text, entities,
 
 
 def _make_example(doc: str, chunk: list[Annotated], number: int, split: str, stats: Counter[str]) -> Example | None:
+    """`number` is the chunk's position in its document, counting dropped chunks, so ids survive filter changes."""
     stats[f"{split}: chunks built"] += 1
     if any(c[3] for c in chunk):
         stats[f"{split}: chunks dropped (unresolvable technique mention)"] += 1
@@ -126,18 +128,20 @@ def _chunk_document(doc: str, rows: list[dict[str, Any]], doc_techniques: dict[s
     out: list[Example] = []
     chunk: list[Annotated] = []
     size = 0
+    built = 0
     for row in rows:
         sentence = row["text"].strip()
         if not re.search(r"[A-Za-z]{3}", sentence):
             continue  # separators and empty headings
         ents, techs, tainted = _annotate(row, sentence, doc_techniques, stats, split)
         if chunk and size + len(sentence) > MAX_CHUNK_CHARS:
-            if (ex := _make_example(doc, chunk, len(out), split, stats)) is not None:
+            if (ex := _make_example(doc, chunk, built, split, stats)) is not None:
                 out.append(ex)
+            built += 1
             chunk, size = [], 0
         chunk.append((sentence, ents, techs, tainted))
         size += len(sentence) + 1
-    if chunk and (ex := _make_example(doc, chunk, len(out), split, stats)) is not None:
+    if chunk and (ex := _make_example(doc, chunk, built, split, stats)) is not None:
         out.append(ex)
     return out
 
@@ -154,8 +158,10 @@ def _annotate(row: dict[str, Any], sentence: str, doc_techniques: dict[str, set[
     entities: list[Entity] = []
     for start, end, kind in bio_spans(row["ce_tags"]):
         if kind in ENTITY_TYPES:
-            text = surface(sentence, tokens, start, end)
-            if text:
+            text = (surface(sentence, tokens, start, end) or "").rstrip(".,;:")
+            if _URL_SLUG.match(text):
+                stats[f"{split}: entity spans dropped (URL slug)"] += 1
+            elif text:
                 entities.append(Entity(text=text, type=ENTITY_TYPES[kind]))  # type: ignore[arg-type]
             else:
                 stats[f"{split}: entity spans not found in the sentence text"] += 1
@@ -163,19 +169,23 @@ def _annotate(row: dict[str, Any], sentence: str, doc_techniques: dict[str, set[
         entities.append(Entity(text=m.group(0), type="CVE"))
     technique_ids: set[str] = set()
     tainted = False
-    for layer in ("ce_tags", "ci_tags"):
-        for start, end, kind in bio_spans(row[layer]):
-            if kind != "TECHNIQUE":
-                continue
-            phrase = surface(sentence, tokens, start, end) or " ".join(tokens[start:end])
-            found = doc_techniques.get(norm_phrase(phrase))
-            usable = {t for t in (found or set()) if t}
-            if usable:
-                technique_ids |= usable
-                stats[f"{split}: technique spans resolved"] += 1
-            else:
-                tainted = True
-                stats[f"{split}: technique spans unresolved"] += 1
+    # Strict labels (hand review of 80 test chunks found unsupported techniques): only EXPLICIT technique
+    # mentions whose phrase maps to exactly one current id count. A chunk holding an implicit mention (inferred
+    # by the annotator, not stated) or an ambiguous phrase is dropped rather than given an incomplete label.
+    if any(k == "TECHNIQUE" for _, _, k in bio_spans(row["ci_tags"])):
+        tainted = True
+        stats[f"{split}: chunks tainted by an implicit technique mention"] += 1
+    for start, end, kind in bio_spans(row["ce_tags"]):
+        if kind != "TECHNIQUE":
+            continue
+        phrase = surface(sentence, tokens, start, end) or " ".join(tokens[start:end])
+        found = doc_techniques.get(norm_phrase(phrase), set())
+        if len(found) == 1 and "" not in found:
+            technique_ids |= found
+            stats[f"{split}: technique spans resolved"] += 1
+        else:
+            tainted = True
+            stats[f"{split}: technique spans unresolved or ambiguous"] += 1
     return entities, technique_ids, tainted
 
 

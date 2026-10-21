@@ -4,28 +4,30 @@ Built by `make finetune-data` (`src/redstring_cti/extractor/dataset.py`). ATT&CK
 
 | Split | Examples | From ATT&CK procedures | From AnnoCTR | Distinct documents |
 |---|---|---|---|---|
-| train | 4,423 | 3,911 | 512 | 849 |
-| val | 265 | 150 | 115 | 50 |
-| test_annoctr | 226 | 0 | 226 | 34 |
+| train | 4,141 | 3,911 | 230 | 843 |
+| val | 199 | 150 | 49 | 48 |
+| test_annoctr | 78 | 0 | 78 | 29 |
 | test_procedures | 600 | 600 | 0 | 63 |
 
 **Documents never straddle splits** (asserted): procedure examples are split by source object (actor, malware or tool), AnnoCTR by the official report split. Identical texts are removed from validation and test if they occur in training.
 
 ## Composition
 
-- Training techniques: 619 distinct; per-technique cap 10 on procedure examples (the most frequent technique has hundreds of sentences, the median 7).
-- val: 126 distinct techniques, 1 never seen in training.
-- test_annoctr: 88 distinct techniques, 0 never seen in training.
+- Training techniques: 612 distinct; per-technique cap 10 on procedure examples (the most frequent technique has hundreds of sentences, the median 7).
+- val: 102 distinct techniques, 1 never seen in training.
+- test_annoctr: 40 distinct techniques, 1 never seen in training.
 - test_procedures: 212 distinct techniques, 1 never seen in training.
 
-Entity types in training: MALWARE 2,340, THREAT_ACTOR 1,830, TOOL 408, CAMPAIGN 357, CVE 18.
+Entity types in training: MALWARE 2,059, THREAT_ACTOR 1,719, CAMPAIGN 357, TOOL 340, CVE 5.
 Training examples with no entity and no technique (kept as 'empty output' examples): 105.
-Text length in characters: train median 104, p95 1443, max 1500; AnnoCTR chunks median 1434, p95 1495, max 1500.
+Text length in characters: train median 100, p95 597, max 1500; AnnoCTR chunks median 1411, p95 1491, max 1500.
 
 ## What was dropped or changed
 
 - chunks built: 899
-- chunks dropped (unresolvable technique mention): 46
+- chunks dropped (unresolvable technique mention): 542
+- chunks tainted by an implicit technique mention: 1,859
+- entity spans dropped (URL slug): 1
 - procedure examples before balancing: 17,173
 - procedure train examples removed by the per-technique cap: 11,742
 - procedure val/test examples removed: identical text in train: 0
@@ -36,8 +38,8 @@ Text length in characters: train median 104, p95 1443, max 1500; AnnoCTR chunks 
 - technique links unchanged: 3,289
 - technique links without a current id: 18
 - technique row linked to a non-technique (skipped): 11
-- technique spans resolved: 3,318
-- technique spans unresolved: 72
+- technique spans resolved: 1,068
+- technique spans unresolved or ambiguous: 30
 
 (AnnoCTR counts are summed over its train, dev and test splits; dev is used as validation.)
 

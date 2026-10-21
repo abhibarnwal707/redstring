@@ -198,9 +198,9 @@ def test_annoctr_chunks_resolve_techniques_and_drop_unresolvable_ones(tmp_path: 
     link = lambda mention, url, kind="TECHNIQUE": {"entity_type": kind, "label_link": url, "mention": mention, "document": "doc1"}
     rows = [
         ner_row("doc1", 0, "TestBear deployed Trickbot.", ce={0: "GROUP", 2: "MALWARE"}),
-        ner_row("doc1", 1, "They encrypted files using ransomware and CVE-2021-44228 was exploited.", ci={4: "TECHNIQUE"}),  # token 4 is "ransomware"
+        ner_row("doc1", 1, "They encrypted files using ransomware and CVE-2021-44228 was exploited.", ce={4: "TECHNIQUE"}),  # token 4 is "ransomware"
         ner_row("doc1", 2, "-----------------"),  # a separator contributes nothing
-        ner_row("doc1", 3, "Attackers ran powershell scripts.", ci={2: "TECHNIQUE"}),
+        ner_row("doc1", 3, "Attackers ran powershell scripts.", ce={2: "TECHNIQUE"}),
         ner_row("doc2", 0, "Something mysterious happened here.", ci={1: "TECHNIQUE"}),  # no linking row at all
     ]
     links = [
@@ -219,6 +219,22 @@ def test_annoctr_chunks_resolve_techniques_and_drop_unresolvable_ones(tmp_path: 
     assert [t.attack_id for t in chunk.extraction.techniques] == ["T1059.001", "T1486"]
     assert "-----" not in chunk.text and chunk.text.count("\n") == 2
     assert stats["train: chunks dropped (unresolvable technique mention)"] == 1 and stats["train: technique links mapped"] == 1
+
+
+def test_annoctr_drops_chunks_with_implicit_or_ambiguous_techniques(tmp_path: Path) -> None:
+    ids = AttackIds(live={"T1486", "T1566"})
+    link = lambda mention, url: {"entity_type": "TECHNIQUE", "label_link": url, "mention": mention, "document": "d"}
+    rows = [
+        ner_row("d", 0, "They encrypted everything."),
+        ner_row("d", 1, "x" * 1500 + " the crew encrypted data.", ce={}, ci={}),
+        ner_row("d", 2, "Stolen mail was used to phish staff with phishing lures.", ci={1: "TECHNIQUE"}),  # implicit
+    ]
+    write_annoctr(tmp_path, rows, [link("phish", "https://attack.mitre.org/techniques/T1566")])
+    out = annoctr.load_split(tmp_path, "train", ids, Counter())
+    assert all("phish" not in e.text for e in out)  # the chunk with the implicit mention is gone
+    ambiguous = [ner_row("d", 0, "Attackers encrypt files.", ce={2: "TECHNIQUE"})]
+    write_annoctr(tmp_path, ambiguous, [link("files", "https://attack.mitre.org/techniques/T1486"), link("files", "https://attack.mitre.org/techniques/T1566")])
+    assert annoctr.load_split(tmp_path, "train", ids, Counter()) == []  # one phrase, two ids: dropped
 
 
 def test_annoctr_splits_long_documents_into_bounded_chunks(tmp_path: Path) -> None:
@@ -297,7 +313,7 @@ def test_real_dataset_is_sound_and_sized_as_planned() -> None:
     ids = load_attack_ids(BUNDLE)
     ds = dataset.build(BUNDLE, ANNOCTR, ids)
     assert dataset.validate(ds, ids) == []
-    assert 3000 <= len(ds.train) <= 6000 and 200 <= len(ds.val) <= 400 and len(ds.test_annoctr) > 150 and len(ds.test_procedures) == 600
+    assert 3000 <= len(ds.train) <= 6000 and 150 <= len(ds.val) <= 400 and len(ds.test_annoctr) > 50 and len(ds.test_procedures) == 600
     assert {e.source for e in ds.test_annoctr} == {"annoctr"} and {e.source for e in ds.test_procedures} == {"attack_procedures"}
     assert len({t.attack_id for e in ds.train for t in e.extraction.techniques}) > 500  # the long tail is still represented
     train_docs = {e.doc_id for e in ds.train if e.source == "annoctr"}

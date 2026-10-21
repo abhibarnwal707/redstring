@@ -53,3 +53,6 @@ norecursedirs = ["data", ".venv", "mlruns", "finetune"]
 [[tool.mypy.overrides]]
 module = ["ijson"]
 ignore_missing_imports = true
+
+[tool.ruff]
+extend-exclude = ["finetune/notebooks"]  # Kaggle script: unsloth/trl exist only there
