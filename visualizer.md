@@ -6,6 +6,8 @@ Everything marked **REAL** below was read directly from the files in `data/raw/`
 
 ## 0. TL;DR
 
+> **Status (2026-10-21): Phases 0–2 are done; Phase 3 is next.** The sections below were written before the build; where the build turned out differently they are corrected, and the final numbers are in `evals/results/data_quality.md`.
+
 - **The downloaded data is what we expected, and nothing needs manual extraction.** We read the `.zip` and `.gz` files directly from Python as streams. No unzipping by hand.
 - **There are 5 surprises** where real v20 data differs from the playbook (section 1.2). None blocks the project, but they change a few details.
 - **The graph** is built by reading each file, turning records into typed nodes, and joining them on shared IDs (`T1566.001`, `CAPEC-163`, `CWE-451`, `CVE-2024-38112`).
@@ -115,7 +117,7 @@ For CWE-89 (SQL injection) we also see `Related_Weakness Nature="ChildOf" CWE_ID
     "weaknesses": [{"type": "Primary", "description": [{"value": "CWE-451"}, {"value": "NVD-CWE-Other"}]}]
 } }
 ```
-**Keep:** `cve_id`, English description, `cvss_v31_score=7.5`, `severity`, `published`. `CWE-451` → edge `(CVE-2024-38112)-[:HAS_WEAKNESS]->(CWE-451)`. `NVD-CWE-Other` is a pseudo-CWE: filtered out.
+**Keep:** `cve_id`, English description, the best CVSS score with its version (`cvss_score=7.5`, `cvss_version="3.1"`, `cvss_severity="HIGH"`; v3.1 is preferred, then 4.0, 3.0, 2.0), `published`. `CWE-451` → edge `(CVE-2024-38112)-[:HAS_WEAKNESS]->(CWE-451)`. `NVD-CWE-Other` is a pseudo-CWE: filtered out.
 
 ### 2.7 CISA KEV: the "actively exploited" flag
 ```json
@@ -146,7 +148,7 @@ Every hop is a plain ID match. The graph database just makes those matches perma
 3. **CAPEC:** create `CAPEC` nodes → `EXPLOITS` edges to CWE → `MAPS_TO` edges to techniques (after adding the `T` prefix and dropping non-live techniques).
 4. **NVD:** stream each yearly file → create `CVE` nodes (skip `Rejected`) → `HAS_WEAKNESS` only where the CWE node exists.
 5. **KEV:** set the `kev` fields on existing CVE nodes.
-6. **Embeddings:** compute a 384-number vector for each node's text and store it on the node, for "similar meaning" search.
+6. **Embeddings:** compute a 384-number vector (`BAAI/bge-small-en-v1.5`) for each concept node and for the 106,111 CVEs that are KEV or on the chain, and store it on the node. Concepts go in the `ref_vec` index and CVEs in `cve_vec`, because 394K CVEs would otherwise crowd the 3.3K concept nodes out of every search. A separate `text_search` full-text index handles exact names and aliases.
 
 ### 3.3 What ends up in Neo4j (the real chain, as a picture)
 
@@ -173,7 +175,8 @@ As Neo4j would store the nodes (properties shortened):
 (:Technique:Searchable  {uid:"Technique:T1566.001", attack_id:"T1566.001", name:"Spearphishing Attachment", is_subtechnique:true})
 (:CAPEC:Searchable      {uid:"CAPEC:CAPEC-163", capec_id:"CAPEC-163", name:"Spear Phishing"})
 (:CWE:Searchable        {uid:"CWE:CWE-451", cwe_id:"CWE-451", name:"User Interface (UI) Misrepresentation of Critical Information"})
-(:CVE:Searchable        {uid:"CVE:CVE-2024-38112", cve_id:"CVE-2024-38112", cvss_v31_score:7.5, severity:"HIGH", kev:true})
+(:CVE:Searchable        {uid:"CVE:CVE-2024-38112", cve_id:"CVE-2024-38112", cvss_score:7.5, cvss_version:"3.1", cvss_severity:"HIGH", kev:true})
+(every non-CVE node above also carries the label :Reference, which is what ref_vec indexes)
 ```
 
 ### 3.4 The question this answers
@@ -190,7 +193,7 @@ A row it returns (**REAL**, I confirmed this chain exists in the data):
 |---|---|---|---|
 | T1566.001 | CAPEC-163 | CWE-451 | CVE-2024-38112 |
 
-A quick offline join over the 2023–2025 KEV CVEs found **101 chains and 77 distinct CVEs** reachable from APT29. Plain vector search can't produce this, because no document states the whole chain.
+In the finished graph, APT29 reaches **305 chains, 16 techniques, 21 CWEs and 235 distinct KEV CVEs** (measured with the Cypher query above). Plain vector search can't produce this, because no document states the whole chain.
 
 ### 3.5 Honest caveats about this chain (important for the README)
 - **It's sparse.** Only 25.4% of techniques (179/706) have a CAPEC link, and 20 of APT29's 66 techniques.
@@ -201,7 +204,7 @@ A quick offline join over the 2023–2025 KEV CVEs found **101 chains and 77 dis
 
 ## 4. How the graph is then used (one paragraph)
 
-The agent receives a question, resolves names to IDs ("Cozy Bear" → G0016 using the alias list), picks a route (graph walk, vector search, both, or live CVE lookup), calls read-only tools on the MCP server, and writes an answer that cites the IDs and the path it walked. A deterministic check rejects any cited ID that isn't in the evidence it retrieved.
+The agent receives a question, resolves names to IDs ("Cozy Bear" → G0016 using the **full-text index on names and aliases**; vector search cannot look up a bare name), picks a route (graph walk, vector search, both, or live CVE lookup), calls read-only tools on the MCP server, and writes an answer that cites the IDs and the path it walked. A deterministic check rejects any cited ID that isn't in the evidence it retrieved.
 
 ---
 

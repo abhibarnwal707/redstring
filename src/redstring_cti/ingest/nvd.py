@@ -38,6 +38,7 @@ _FEED_NAME = re.compile(r"nvdcve-2\.0-(\w+)\.json\.gz")
 class CveRecord(BaseModel):
     node: Node
     weaknesses: dict[str, str]  # CWE id -> "Primary" | "Secondary"
+    pseudo_weakness: bool = False  # lists NVD-CWE-Other / NVD-CWE-noinfo (filtered out)
 
 
 def feed_paths(raw_dir: Path) -> list[Path]:
@@ -81,21 +82,25 @@ def _english(descriptions: list[dict[str, Any]]) -> str | None:
     return clean_text(descriptions[0].get("value")) if descriptions else None
 
 
-def _weaknesses(cve: dict[str, Any], stats: Counter[str]) -> dict[str, str]:
+def _weaknesses(cve: dict[str, Any], stats: Counter[str]) -> tuple[dict[str, str], bool]:
     found: dict[str, str] = {}
+    pseudo = False
     for w in cve.get("weaknesses", []):
         kind = w.get("type", "Secondary")
         for d in w.get("description", []):
             value = d.get("value", "")
             if not value.startswith("CWE-"):  # NVD-CWE-Other / NVD-CWE-noinfo are not real weaknesses
                 stats["weakness_pseudo_filtered"] += 1
+                pseudo = True
                 continue
             if found.get(value) != "Primary":
                 found[value] = kind
-    return found
+    return found, pseudo
 
 
-def iter_cves(path: Path, stats: Counter[str]) -> Iterator[CveRecord]:
+def iter_cves(
+    path: Path, stats: Counter[str], rejected_ids: set[str] | None = None
+) -> Iterator[CveRecord]:
     with gzip.open(path, "rb") as f:
         for item in ijson.items(f, "vulnerabilities.item", use_float=True):
             cve = item["cve"]
@@ -103,6 +108,8 @@ def iter_cves(path: Path, stats: Counter[str]) -> Iterator[CveRecord]:
             status = cve.get("vulnStatus")
             if status in SKIP_STATUS:
                 stats[f"skipped_{status.lower()}:CVE"] += 1
+                if rejected_ids is not None:
+                    rejected_ids.add(cve["id"])
                 continue
             props: dict[str, Any] = {
                 "description": _english(cve.get("descriptions", [])),
@@ -111,7 +118,7 @@ def iter_cves(path: Path, stats: Counter[str]) -> Iterator[CveRecord]:
                 "vuln_status": status,
                 **_pick_cvss(cve.get("metrics", {})),
             }
-            weaknesses = _weaknesses(cve, stats)
+            weaknesses, pseudo = _weaknesses(cve, stats)
             stats["cves_with_cwe" if weaknesses else "cves_without_cwe"] += 1
             if "cvss_score" not in props:
                 stats["cves_without_cvss"] += 1
@@ -123,6 +130,7 @@ def iter_cves(path: Path, stats: Counter[str]) -> Iterator[CveRecord]:
                     props={k: v for k, v in props.items() if v is not None},
                 ),
                 weaknesses=weaknesses,
+                pseudo_weakness=pseudo,
             )
 
 

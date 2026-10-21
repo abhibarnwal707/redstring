@@ -1,5 +1,7 @@
 # RedString-CTI — Purpose, Data, Models, and What Each Phase Uses
 
+> **Status (2026-10-21): Phases 0, 1 and 2 are done; Phase 3 (the gold question set) is next.** The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
+
 ## 1. The one-paragraph version
 
 Security teams drown in information about attackers and software flaws, and that information lives in **separate public databases that don't talk to each other**. RedString-CTI connects those databases into one **knowledge graph**, then lets you ask questions in plain English ("Which weaknesses do APT29's techniques exploit, and which actively-exploited CVEs map to them?"). The answer comes with **citations to the exact graph paths** it was derived from, so nothing has to be taken on trust. A second component, a **small fine-tuned language model**, reads raw threat-report text and turns it into structured facts that can be added to the graph.
@@ -81,7 +83,7 @@ What it will **not** do: it knows nothing about *your* network, logs, or alerts.
 
 | Model | Role | Where it runs | Stage |
 |---|---|---|---|
-| **`BAAI/bge-small-en-v1.5`** (embedding model, 384-dim) | Turns each node's text into a vector so we can do "similar meaning" search | Locally on the Mac (Apple GPU / MPS) | P2 build vectors, P4–P6 query vectors |
+| **`BAAI/bge-small-en-v1.5`** (embedding model, 384-dim). **Chosen** over all-MiniLM-L6-v2, gte-small, e5-small-v2 and bge-base by a 4-task test on our own graph | Turns node text (name, aliases, description) into a vector for "similar meaning" search. Queries get the BGE retrieval prefix; documents do not | Locally on the Mac (Apple GPU / MPS), 300–700 docs/s | P2 build vectors, P4–P6 query vectors |
 | **Groq-hosted LLM** (free tier; specific model chosen in Phase 4) | The **agent's brain**: routes questions, writes Cypher for the Text2Cypher baseline, writes the final cited answer, and is the LLM-judge for faithfulness checks | Groq cloud API (key in `.env`) | P4, P6, P7, P12 |
 | **Qwen3-1.7B (base)** | The model we **fine-tune** | Kaggle free GPU (T4/P100) for training | P9 |
 | **Qwen3-1.7B + LoRA adapter** ("the extractor") | Reads threat-report text and outputs structured JSON (entities, techniques, relations) | Training on Kaggle; then merged and quantised to **GGUF Q4_K_M** (about 1 GB) and run on CPU/Mac with Ollama or llama.cpp | P9 train, P10 eval, P11 use, P12 demo |
@@ -104,7 +106,9 @@ What it will **not** do: it knows nothing about *your* network, logs, or alerts.
  Parsers / ingesters (ATT&CK, CWE, CAPEC, NVD, KEV)        Phase 2
         │  MERGE into Neo4j in batches
         ▼
- Neo4j knowledge graph  ◀────────────── embeddings (bge-small) on every node
+ Neo4j knowledge graph  ◀────────────── embeddings (bge-small): 3,344 concept nodes in `ref_vec`,
+        │                                  106,111 CVEs (KEV or on the chain) in `cve_vec`;
+        │                                  `text_search` full-text index on names, descriptions, aliases
         │
         │ read-only access only
         ▼
@@ -134,11 +138,11 @@ Why MCP (Model Context Protocol) in the middle: the same server can be used by o
 |---|---|---|---|---|
 | **P0 Setup** | Repo, Python env, Neo4j in Docker, config, smoke test | none | none | Working scaffold (done) |
 | **P1 Download** | Fetch all raw sources with retries, concurrency, hash-based skip; write manifest | All five sources (over the network) | none | `data/raw/*` + `MANIFEST.json` |
-| **P2 Graph** | Parse each source, drop revoked/deprecated/rejected items, create typed nodes and relationships, add KEV flags, compute embeddings, produce a data-quality report and 10 sanity queries | ATT&CK, CWE, CAPEC, NVD, KEV | bge-small (embeddings) | Neo4j graph, `data_quality.md` |
+| **P2 Graph** | Parse each source, drop revoked/deprecated/rejected items, create typed nodes and relationships, add KEV flags, compute embeddings, produce a data-quality report and 10 sanity queries. **DONE** | ATT&CK, CWE, CAPEC, NVD, KEV | bge-small (embeddings) | Neo4j graph, `data_quality.md` |
 | **P3 Gold set** | Write 150 questions (30 held out) of 5 kinds: single-hop, multi-hop, aggregation, fuzzy, unanswerable. Correct answers are produced by running a Cypher query on the graph, never typed by hand | The graph | none (questions written by us) | `evals/gold/questions.jsonl` |
 | **P4 Baselines** | Build the two systems we must beat: (a) vector-only RAG, (b) graph-only Text2Cypher. Build the scorer: ID precision/recall/F1, latency, tokens, $/query | Graph + vectors; gold set | bge-small; Groq LLM | Baseline results table by question type |
 | **P5 MCP server** | Expose the graph as 6 safe, read-only tools. Guardrails: read-only transactions, keyword deny-list, 5 s timeout, row cap, bounded path lengths, audit log | Graph | none | Tested server |
-| **P6 Agent** | LangGraph state machine with routing, citations, budgets (max 8 tool calls) and a deterministic citation check | Graph via MCP | Groq LLM, bge-small | Agent returning answer + citations + paths + cost + latency |
+| **P6 Agent** | LangGraph state machine with routing, citations, budgets (max 8 tool calls) and a deterministic citation check | Graph via MCP | Groq LLM, bge-small (names resolved by the full-text index first, vectors second) | Agent returning answer + citations + paths + cost + latency |
 | **P7 Evaluation** | Compare vector-RAG vs Text2Cypher vs the agent; error analysis; ablations; one final run on the held-out 30 | Gold set | Groq LLM (and optionally one API model) | `rag_comparison.md` |
 | **P8 Fine-tune data** | Build `{text → JSON}` training examples; split **by document**, never by sentence; hand-verify the test set | ATT&CK procedure text, TRAM-Clean, AnnoCTR | none (optionally a teacher LLM for extra labels, training only) | Train/val/test JSONL |
 | **P9 QLoRA** | Fine-tune Qwen3-1.7B on Kaggle | P8 dataset | Qwen3-1.7B + LoRA | Adapter on Hugging Face Hub |

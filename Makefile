@@ -1,4 +1,4 @@
-.PHONY: download load embed test lint eval up down
+.PHONY: download load embed dq test lint eval up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -23,3 +23,6 @@ down:
 
 embed:
 	uv run python -m redstring_cti.graph.embeddings
+
+dq:
+	uv run python -m redstring_cti.graph.dq
