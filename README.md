@@ -2,7 +2,7 @@
 
 Agentic GraphRAG for cyber threat intelligence over MITRE ATT&CK, CAPEC, CWE, NVD and CISA KEV, with a QLoRA-fine-tuned threat-report extractor.
 
-**Status:** Phases 0–3 complete (data download, knowledge graph, embeddings, data-quality report, 150-question gold evaluation set). Phase 4 (retrieval baselines) is built; the Text2Cypher dev run resumes with `make eval-t2c` (interim results in `evals/results/baselines.md`). Phase 5 (MCP server) is complete. Next: the LangGraph agent. Build guide: the execution playbook (see the checklist in it).
+**Status:** Phases 0–3 complete (data download, knowledge graph, embeddings, data-quality report, 150-question gold evaluation set). Phase 4 (retrieval baselines) is built; the Text2Cypher dev run resumes with `make eval-t2c` (interim results in `evals/results/baselines.md`). Phase 5 (MCP server) and Phase 6 (the LangGraph agent) are complete. Next: evaluating the agent against the baselines. Build guide: the execution playbook (see the checklist in it).
 
 | What | Where |
 |---|---|
@@ -47,3 +47,18 @@ timeout and a 200-row cap bound the cost. Every call is appended to `data/proces
 
 Paths from a group or technique to a CVE go through CAPEC and CWE and mean "shares a weakness", not "the
 group exploited this CVE"; the tools say so in their output.
+
+## The agent
+
+`redstring_cti.agent.Agent` answers a question in at most a few model calls, and reaches the graph only through the MCP server above:
+
+1. **Plan** (one model call): route (`graph`, `vector`, `hybrid`, `cve_live`, `unanswerable`), query pattern, entity names, target type.
+2. **Resolve** names to IDs with the full-text index (no model), then **repair the plan deterministically**: templates first, free-form Cypher only for filters, counts, rankings and intersections.
+3. **Retrieve** with the matching tools; evidence is rendered compactly and records exactly which IDs the answering model was shown.
+4. **Answer** (one model call) with inline citations and a machine-readable `FINAL:` line.
+5. **Self-check**: every cited ID must be in the evidence, otherwise one revision; an ID that survives is removed and a caveat is added. Budgets (8 tool calls, a token budget, a time limit) are enforced in code.
+
+```bash
+make sanity-agent          # the 10 sanity questions, end to end
+make eval-agent            # the dev split (about one day of Groq's free token allowance)
+```

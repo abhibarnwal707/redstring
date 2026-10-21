@@ -35,6 +35,9 @@ def test_extract_ids_finds_every_kind_once_in_order() -> None:
         ("FINAL: not found", "not_found", None),
         ("no final line, mentions T1566", "none", None),
         ("FINAL: first\nFINAL: M1017", "ids", ["M1017"]),  # the last FINAL line wins
+        ("It is the one called CAPEC-90 in the data. FINAL: CAPEC-90", "ids", ["CAPEC-90"]),  # inline, as models sometimes write it
+        ("the log clearing\u202fFINAL: T1685.006, T1070", "ids", ["T1685.006", "T1070"]),  # after a narrow no-break space
+        ("This is final: nothing else", "none", None),  # the word "final" is not a marker unless a value follows an ID or number
     ],
 )
 def test_parse_final(text: str, kind: str, payload: object) -> None:

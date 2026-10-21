@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -38,3 +38,9 @@ eval-t2c:
 
 serve:
 	uv run python -m redstring_cti.mcp_server.server
+
+eval-agent:
+	uv run python evals/runners/run_rag_eval.py --system agent --split dev
+
+sanity-agent:
+	uv run python -m redstring_cti.agent.sanity

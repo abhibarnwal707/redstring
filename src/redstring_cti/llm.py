@@ -99,6 +99,7 @@ class LLMResult:
     cached: bool = False
     fallback_from: list[str] | None = None  # models that failed before this one answered
     waited_s: float = 0.0  # time spent sleeping for rate limits and retries (not part of service time)
+    truncated: bool = False  # the reply hit max_tokens, so it may be cut off mid-list
 
     @property
     def cost_usd(self) -> float:
@@ -324,6 +325,7 @@ class LLMClient:
                     reasoning_tokens=int(details.get("reasoning_tokens", 0) or 0),
                     latency_s=latency,
                     waited_s=waited,
+                    truncated=choice.get("finish_reason") == "length",
                 )
             message = self._error_message(resp)
             lowered = message.lower()

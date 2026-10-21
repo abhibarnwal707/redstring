@@ -8,6 +8,7 @@ Layers 1 and 2 are the enforcement. The deny-list alone is not trusted.
 """
 
 import re
+from dataclasses import dataclass, field
 from typing import Any
 
 from neo4j import Driver, ManagedTransaction, unit_of_work
@@ -80,18 +81,41 @@ def validate(cypher: str) -> str:
     return original
 
 
-def run_read(
+@dataclass
+class QueryResult:
+    rows: list[dict[str, Any]]
+    executed: str
+    warnings: list[str] = field(default_factory=list)  # e.g. "property key `kek` does not exist": a likely typo
+
+
+def run_read_ex(
     driver: Driver, cypher: str, *, params: dict[str, Any] | None = None, timeout_s: float = TIMEOUT_S
-) -> tuple[list[dict[str, Any]], str]:
-    """Validate then execute in a read transaction with a timeout. Returns (rows, executed query)."""
+) -> QueryResult:
+    """Validate then execute in a read transaction with a timeout. Neo4j's 'unrecognised property / label /
+    relationship' notifications are returned too: a query that silently matches nothing because of a typo
+    is the most common failure of model-written Cypher."""
     safe = validate(cypher)
 
     @unit_of_work(timeout=timeout_s)
-    def work(tx: ManagedTransaction) -> list[dict[str, Any]]:
-        return [dict(r) for r in tx.run(safe, params or {})]
+    def work(tx: ManagedTransaction) -> tuple[list[dict[str, Any]], list[str]]:
+        result = tx.run(safe, params or {})
+        rows = [dict(r) for r in result]
+        # gql_status_objects name the missing property ("The property `kek` does not exist"); the legacy
+        # notification text does not, and the name is what lets a model fix its typo.
+        statuses = result.consume().gql_status_objects or []
+        return rows, [str(s.status_description) for s in statuses if "UNRECOGNIZED" in str(s.classification)]
 
     try:
         with driver.session() as session:
-            return session.execute_read(work), safe
+            rows, warnings = session.execute_read(work)
     except (ClientError, DatabaseError, Neo4jError) as exc:
         raise CypherExecutionError(str(exc).splitlines()[0][:300]) from exc
+    return QueryResult(rows, safe, warnings)
+
+
+def run_read(
+    driver: Driver, cypher: str, *, params: dict[str, Any] | None = None, timeout_s: float = TIMEOUT_S
+) -> tuple[list[dict[str, Any]], str]:
+    """Like run_read_ex, returning (rows, executed query)."""
+    result = run_read_ex(driver, cypher, params=params, timeout_s=timeout_s)
+    return result.rows, result.executed

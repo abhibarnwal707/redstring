@@ -24,11 +24,12 @@ from redstring_cti.config import PROCESSED_DIR
 from redstring_cti.graph.ids import LABELS, key_expr, parse_id
 from redstring_cti.graph.metapaths import MAX_HOPS, enumerate_metapaths, metapath_cypher
 from redstring_cti.ingest.nvd import parse_cve
-from redstring_cti.mcp_server.guardrails import MAX_ROWS, run_read
+from redstring_cti.mcp_server.guardrails import MAX_ROWS, run_read, run_read_ex
 
 MAX_K = 25
 MAX_NEIGHBORS = 200
-MAX_PATHS = 50
+MAX_ENDPOINTS = 200  # find_paths limit counts distinct end nodes, not paths
+EXAMPLES_PER_ENDPOINT = 2
 DESCRIPTION_CHARS = 200
 DETAIL_DESCRIPTION_CHARS = 600
 NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
@@ -41,8 +42,8 @@ REL_TYPES = (
 HIDDEN_PROPS = {"embedding", "embedding_key", "embedding_model", "ingested_at", "source", "source_version", "stix_id", "uid"}
 _LUCENE_SPECIAL = re.compile(r'([+\-&|!(){}\[\]^"~*?:\\/])')
 WEAKNESS_NOTE = (
-    "Paths through CAPEC and CWE link a technique to a CVE by a shared weakness. "
-    "That is an association, not evidence that anyone exploited the CVE with that technique."
+    "Routes through CAPEC and CWE connect the start and end nodes only by a shared weakness: "
+    "an association, not evidence that the start node (a group or technique) was used with the end node."
 )
 
 
@@ -214,37 +215,47 @@ def get_neighbors(ctx: Context, id: str, rel_types: list[str] | None = None, dir
 
 
 def find_paths(ctx: Context, from_id: str, to_label: str, max_hops: int = MAX_HOPS, limit: int = 25, kev_only: bool = False) -> dict[str, Any]:
+    """Distinct nodes of type `to_label` reachable from `from_id`, each with up to two example paths.
+    `limit` counts distinct end nodes (one CVE reached by ten routes counts once)."""
     ref = _ref(from_id)
     if to_label not in LABELS:
         raise ToolInputError(f"unknown to_label {to_label!r}; valid labels: {list(LABELS)}")
     _bounded("max_hops", max_hops, 1, MAX_HOPS)
-    _bounded("limit", limit, 1, MAX_PATHS)
+    _bounded("limit", limit, 1, MAX_ENDPOINTS)
     routes = enumerate_metapaths(ref.label, to_label, max_hops)
-    out: dict[str, Any] = {"from": ref.key, "from_label": ref.label, "to_label": to_label, "routes": [r.describe() for r in routes],
-                           "paths": [], "truncated": False}
+    out: dict[str, Any] = {"from": ref.key, "from_label": ref.label, "to_label": to_label, "kev_only": kev_only,
+                           "routes": [r.describe() for r in routes], "paths": [], "endpoint_count": 0, "truncated": False}
     if not routes:
         out["note"] = f"No schema route from {ref.label} to {to_label} within {max_hops} hops. Try get_neighbors or cypher_query."
         return out
-    remaining = limit
+    seen: set[str] = set()
     for route in routes:
-        if remaining <= 0:
-            out["truncated"] = True
-            break
-        rows = _rows(ctx, metapath_cypher(route, kev_only=kev_only) + " LIMIT $limit", uid=ref.uid, limit=remaining + 1)
-        if len(rows) > remaining:
-            out["truncated"] = True
-            rows = rows[:remaining]
+        rows = _rows(ctx, metapath_cypher(route, kev_only=kev_only) + " LIMIT $limit", uid=ref.uid, limit=limit + 1, examples=EXAMPLES_PER_ENDPOINT)
         for r in rows:
-            out["paths"].append({"route": route.describe(), "hops": route.hops, "nodes": r["nodes"], "triples": r["triples"]})
-        remaining -= len(rows)
+            if r["end_id"] in seen:
+                continue
+            if len(seen) >= limit:
+                out["truncated"] = True
+                break
+            seen.add(r["end_id"])
+            for ex in r["examples"]:
+                out["paths"].append({"route": route.describe(), "hops": route.hops, "nodes": ex["nodes"], "triples": ex["triples"],
+                                     "end_path_count": r["path_count"]})
+        if out["truncated"]:
+            break
+    out["endpoint_count"] = len(seen)
     if any(r.weakness_level for r in routes):
         out["note"] = WEAKNESS_NOTE
     return out
 
 
 def cypher_query(ctx: Context, cypher: str) -> dict[str, Any]:
-    rows, executed = run_read(ctx.driver, cypher)
-    return {"rows": [jsonable(r) for r in rows], "row_count": len(rows), "truncated": len(rows) >= MAX_ROWS, "executed": executed}
+    result = run_read_ex(ctx.driver, cypher)
+    out: dict[str, Any] = {"rows": [jsonable(r) for r in result.rows], "row_count": len(result.rows),
+                           "truncated": len(result.rows) >= MAX_ROWS, "executed": result.executed}
+    if result.warnings:
+        out["warnings"] = [short(w, 200) for w in result.warnings[:3]]  # e.g. an unknown property: probably a typo
+    return out
 
 
 def resolve_entity(ctx: Context, name: str, labels: list[str] | None = None, limit: int = 5) -> dict[str, Any]:

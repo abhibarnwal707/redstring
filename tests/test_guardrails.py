@@ -99,3 +99,14 @@ def test_write_cannot_slip_through_a_read_transaction(driver: Driver) -> None:
         session.execute_read(write)
     with driver.session() as session:
         assert session.run("MATCH (n:GuardrailProbe) RETURN count(n) AS c").single()["c"] == 0  # type: ignore[index]
+
+
+def test_neo4j_warnings_about_unknown_names_are_returned(driver: Driver) -> None:
+    from redstring_cti.mcp_server.guardrails import run_read_ex
+
+    typo = run_read_ex(driver, "MATCH (v:CVE {kek: true}) RETURN v.cve_id AS id")
+    assert typo.rows == [] and any("kek" in w for w in typo.warnings)
+    assert any("Banana" in w for w in run_read_ex(driver, "MATCH (n:Banana) RETURN n").warnings)
+    assert run_read_ex(driver, "MATCH (v:CVE {kev: true}) RETURN v.cve_id AS id LIMIT 3").warnings == []
+    rows, executed = run_read(driver, "MATCH (g:Group) RETURN g.attack_id AS id LIMIT 2")
+    assert len(rows) == 2 and executed.endswith("LIMIT 2")  # the older tuple API still works

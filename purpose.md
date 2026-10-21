@@ -1,6 +1,6 @@
 # RedString-CTI — Purpose, Data, Models, and What Each Phase Uses
 
-> **Status (2026-10-21): Phases 0–5 are done; Phase 6 (the LangGraph agent) is next.** One run from Phase 4 (finishing the Text2Cypher dev evaluation) waits for the Groq daily token quota to reset. The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
+> **Status (2026-10-21): Phases 0–6 are done; Phase 7 (evaluation and iteration) is next.** Two runs wait for the Groq daily token quota to reset: finishing the Text2Cypher dev evaluation (Phase 4) and re-validating the agent's sanity questions on the primary model (Phase 6). The graph holds 397,191 nodes and 381,303 edges, 109,455 of them embedded. Numbers: `evals/results/data_quality.md`. Embedding-model evidence: `evals/results/embedding_model_choice.md`.
 
 ## 1. The one-paragraph version
 
@@ -116,9 +116,10 @@ What it will **not** do: it knows nothing about *your* network, logs, or alerts.
         │  tools: semantic_search, resolve_entity, get_entity, get_neighbors,
         │         find_paths, cypher_query, cve_lookup
         ▼
- LangGraph agent (Groq LLM)                                 Phase 6
-   resolve entities → pick route (graph / vector / hybrid / live CVE)
-   → retrieve → answer with citations → self-check (every cited ID must be in the evidence)
+ LangGraph agent (Groq LLM, reaches the graph only through MCP)  Phase 6  [DONE]
+   plan (route, pattern, entity names) → resolve names to IDs → deterministic plan repair (templates first)
+   → retrieve (graph / vector / hybrid / live CVE) → answer with citations
+   → self-check (every cited ID must be in the evidence; one revision; then strip)
         │
         ▼
  Gradio UI on a Hugging Face Space                          Phase 12

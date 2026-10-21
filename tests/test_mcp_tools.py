@@ -123,7 +123,7 @@ def triple_exists(ctx: tools.Context, triple: list[str]) -> bool:
 def test_find_paths_returns_real_citable_paths(ctx: tools.Context) -> None:
     r = tools.find_paths(ctx, "G0016", "CVE", 4, 6, kev_only=True)
     assert r["routes"] == ["Group -USES-> Technique <-MAPS_TO- CAPEC -EXPLOITS-> CWE <-HAS_WEAKNESS- CVE"]
-    assert len(r["paths"]) == 6 and r["truncated"] and "association" in r["note"]
+    assert r["endpoint_count"] == 6 and r["truncated"] and 6 <= len(r["paths"]) <= 12 and "association" in r["note"]  # limit counts distinct CVEs
     for p in r["paths"]:
         assert p["nodes"][0]["id"] == "G0016" and p["nodes"][-1]["label"] == "CVE" and p["hops"] == 4
         assert all(triple_exists(ctx, t) for t in p["triples"])  # every claimed edge exists in the graph
@@ -134,7 +134,7 @@ def test_find_paths_known_chain_and_edge_cases(ctx: tools.Context) -> None:
     r = tools.find_paths(ctx, "T1566.001", "CVE", 3, 50, kev_only=True)
     assert {p["nodes"][-1]["id"] for p in r["paths"]} == {"CVE-2024-38112", "CVE-2024-43461"}  # the only two KEV CVEs with CWE-451
     unfiltered = tools.find_paths(ctx, "T1566.001", "CVE", 3, 50)
-    assert unfiltered["truncated"] and len(unfiltered["paths"]) == 50  # without the filter the cap bites
+    assert unfiltered["truncated"] and unfiltered["endpoint_count"] == 50  # without the filter the cap bites
     assert tools.find_paths(ctx, "G0016", "CVE", 3)["paths"] == [] and "No schema route" in tools.find_paths(ctx, "G0016", "CVE", 3)["note"]
     assert "No schema route" in tools.find_paths(ctx, "G0016", "Group")["note"]
     assert tools.find_paths(ctx, "G9999", "CVE")["paths"] == []  # unknown but well-formed start
@@ -142,7 +142,7 @@ def test_find_paths_known_chain_and_edge_cases(ctx: tools.Context) -> None:
     assert mit["paths"] and "note" not in mit and mit["paths"][0]["hops"] == 2
     with pytest.raises(ToolInputError, match="unknown to_label"):
         tools.find_paths(ctx, "G0016", "Banana")
-    bad_args: list[dict[str, Any]] = [{"max_hops": 5}, {"max_hops": 0}, {"limit": 0}, {"limit": 51}]
+    bad_args: list[dict[str, Any]] = [{"max_hops": 5}, {"max_hops": 0}, {"limit": 0}, {"limit": 201}]
     for bad in bad_args:
         with pytest.raises(ToolInputError):
             tools.find_paths(ctx, "G0016", "CVE", **bad)
@@ -267,3 +267,34 @@ def test_tool_output_stays_compact(ctx: tools.Context) -> None:
     }
     for name, payload in sizes.items():
         assert len(json.dumps(payload)) < 14_000, name  # a few thousand tokens at most
+
+
+def test_find_paths_limit_counts_distinct_end_nodes_and_is_complete(ctx: tools.Context) -> None:
+    """Regression: the limit used to count paths, so several routes to one CVE could hide others."""
+    full = tools.find_paths(ctx, "G0138", "CVE", 4, 200, kev_only=True)
+    expected, _ = tools.run_read(ctx.driver, "MATCH (:Group {attack_id: 'G0138'})-[:USES]->(:Technique)<-[:MAPS_TO]-(:CAPEC)-[:EXPLOITS]->(:CWE)"
+                                              "<-[:HAS_WEAKNESS]-(v:CVE {kev: true}) RETURN DISTINCT v.cve_id AS id")
+    assert {p["nodes"][-1]["id"] for p in full["paths"]} == {r["id"] for r in expected} and full["endpoint_count"] == len(expected) == 34
+    assert not full["truncated"] and len(full["paths"]) > full["endpoint_count"]  # extra examples for CVEs reached several ways
+    assert all(p["end_path_count"] >= 1 for p in full["paths"])
+    capped = tools.find_paths(ctx, "G0138", "CVE", 4, 10, kev_only=True)
+    assert capped["endpoint_count"] == 10 and capped["truncated"]
+
+
+def test_the_weakness_note_only_appears_for_routes_through_capec_or_cwe(ctx: tools.Context) -> None:
+    direct = tools.find_paths(ctx, "CWE-89", "CVE", 4, 5, kev_only=True)
+    assert direct["routes"] == ["CWE <-HAS_WEAKNESS- CVE"] and "note" not in direct  # a plain fact, not an association
+    assert "note" not in tools.find_paths(ctx, "CAPEC-66", "CWE")
+    assert "note" in tools.find_paths(ctx, "G0016", "CVE", 4, 3) and "note" in tools.find_paths(ctx, "T1566.001", "CWE", 4, 3)
+    assert "note" not in tools.find_paths(ctx, "G0016", "Mitigation", 4, 3)
+
+
+def test_weakness_level_means_capec_or_cwe_in_the_middle() -> None:
+    assert not enumerate_metapaths("CWE", "CVE")[0].weakness_level and not enumerate_metapaths("CAPEC", "CWE")[0].weakness_level
+    assert enumerate_metapaths("Technique", "CWE")[0].weakness_level and enumerate_metapaths("CVE", "Group")[0].weakness_level
+
+
+def test_cypher_query_reports_unknown_property_warnings(ctx: tools.Context) -> None:
+    typo = tools.cypher_query(ctx, "MATCH (v:CVE {kek: true}) RETURN v.cve_id AS id")
+    assert typo["row_count"] == 0 and "kek" in typo["warnings"][0]
+    assert "warnings" not in tools.cypher_query(ctx, "MATCH (v:CVE {kev: true}) RETURN v.cve_id AS id LIMIT 2")

@@ -48,7 +48,7 @@ async def test_calls_return_structured_results_and_errors_are_clean(wired: Path)
         res = await c.call_tool("resolve_entity", {"name": "Cozy Bear"})
         assert res.structured_content and res.structured_content["candidates"][0]["id"] == "G0016"
         paths = await c.call_tool("find_paths", {"from_id": "G0016", "to_label": "CVE", "limit": 2, "kev_only": True})
-        assert paths.structured_content and len(paths.structured_content["paths"]) == 2
+        assert paths.structured_content and paths.structured_content["endpoint_count"] == 2
         for tool, args, fragment in [
             ("cypher_query", {"cypher": "MATCH (n) DETACH DELETE n"}, "query rejected"),
             ("cypher_query", {"cypher": "MATCH (a)-[:USES*]->(b) RETURN b"}, "unbounded"),

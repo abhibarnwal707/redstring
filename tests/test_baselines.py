@@ -304,3 +304,36 @@ def test_transport_timeouts_are_logged_and_limited(caplog: pytest.LogCaptureFixt
         llm.complete([{"role": "user", "content": "hi"}])
     assert len(attempts) == 3 and sleeps == [2.0, 4.0]  # two retries, then give up instead of waiting for minutes
     assert "ReadTimeout (attempt 1/3)" in caplog.text
+
+
+def test_agent_stats_appear_in_the_report() -> None:
+    from redstring_cti.evaluation import render_report, summarise
+
+    def agent_record(route: str, verdict: str, tools: int) -> dict[str, Any]:
+        r = make_record(q(), SystemAnswer(text="FINAL: M1040", evidence_ids=["M1040"], calls=[result("x"), result("y")], wall_s=1.0,
+                                          extra={"route": route, "verdict": verdict, "tool_calls": tools, "budget_exhausted": []}), "agent")
+        return r
+
+    s = summarise([agent_record("graph", "pass", 2), agent_record("vector", "fail", 3)])
+    assert s["agent"] == {"routes": {"graph": 1, "vector": 1}, "tool_calls_per_q": 2.5, "llm_calls_per_q": 2.0,
+                          "verdicts": {"fail": 1, "pass": 1}, "budget_exhausted": 0}
+    assert "Agent: routes" in render_report("t", s, [])
+    plain = summarise([make_record(q(), SystemAnswer(text="FINAL: M1040", calls=[result("x")], wall_s=1.0), "vector_rag")])
+    assert plain["agent"] is None and "Agent:" not in render_report("t", plain, [])
+
+
+def test_rescore_applies_the_current_scorer_to_stored_answers(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from redstring_cti import evaluation
+
+    gold = q(ids=["CAPEC-90"])
+    stale = make_record(gold, SystemAnswer(text="It is the pattern CAPEC-90 in the data. FINAL: CAPEC-90", evidence_ids=["CAPEC-90"], calls=[result("x")], wall_s=1.0), "s")
+    stale.update(correct=False, f1=0.0, final_kind="none", unsupported_ids=["CAPEC-1"])  # as an older scorer would have recorded it
+    fresh = evaluation.rescore(stale, gold)
+    assert fresh["correct"] and fresh["f1"] == 1.0 and fresh["final_kind"] == "ids"
+    assert fresh["unsupported_ids"] == ["CAPEC-1"] and stale["correct"] is False  # faithfulness kept, original untouched
+
+    monkeypatch.setattr(evaluation, "RUNS_DIR", tmp_path)
+    monkeypatch.setattr(evaluation, "load_gold", lambda: [gold])
+    RunStore(tmp_path / "old").append(stale)
+    assert "| single_hop | 0.0% (n=1) | 0.0% |" in evaluation.compare_runs(["old"], "T", [])
+    assert "| single_hop | 100.0% (n=1) | 100.0% |" in evaluation.compare_runs(["old"], "T", [], rescored=True)

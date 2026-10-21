@@ -356,3 +356,17 @@ def test_openrouter_200_with_an_error_body_fails_over(tmp_path: Path) -> None:
 
     llm, _, _ = or_client(handler, (OR, OR2), tmp_path)
     assert llm.complete(MSGS).model == OR2
+
+
+def test_a_reply_cut_off_by_max_tokens_is_flagged_not_retried() -> None:
+    calls = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        return httpx.Response(200, json={"choices": [{"message": {"content": "M1040, M10"}, "finish_reason": "length"}], "usage": {"prompt_tokens": 5, "completion_tokens": 9}})
+
+    llm, _ = make(handler, None)
+    r = llm.complete(MSGS)
+    assert r.truncated and r.text == "M1040, M10" and len(calls) == 1  # the caller decides whether to retry
+    ok_llm, _ = make(lambda req: ok(), None)
+    assert not ok_llm.complete(MSGS).truncated

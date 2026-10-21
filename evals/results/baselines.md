@@ -1,8 +1,7 @@
 # Baselines on the dev split (INTERIM)
 
 - Same questions, same model, same scorer for every run; only questions answered by every run are compared (paired).
-- INTERIM: Text2Cypher is only partly run. Groq's daily token cap on gpt-oss-120b (~285K tokens) stopped it, so only questions answered by gpt-oss-120b for BOTH systems are compared; the rest will be re-run after the quota resets.
-- Model: openai/gpt-oss-120b. Dev split minus the 11 few-shot example questions. Vector RAG sees node text only (no edges); Text2Cypher sees the schema plus 11 worked examples.
+- INTERIM: Text2Cypher is only partly run (Groq daily token cap); only questions answered by gpt-oss-120b for BOTH systems are compared. Re-scored with the current scorer (inline FINAL lines are now parsed).
 
 | Question group | vector_rag-dev acc. | vector_rag-dev F1 | text2cypher-dev acc. | text2cypher-dev F1 |
 |---|---|---|---|---|

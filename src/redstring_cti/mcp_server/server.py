@@ -125,12 +125,13 @@ def find_paths(
     from_id: Annotated[str, Field(description="Start node id, e.g. G0016.")],
     to_label: Annotated[str, Field(description="Type of node to reach: Group, Technique, Tactic, Software, Mitigation, Campaign, CAPEC, CWE or CVE.")],
     max_hops: Annotated[int, Field(description="Maximum relationships per path (1-4).")] = 4,
-    limit: Annotated[int, Field(description="Maximum paths returned (1-50).")] = 25,
+    limit: Annotated[int, Field(description="Maximum DISTINCT end nodes returned (1-200); each comes with up to two example paths.")] = 25,
     kev_only: Annotated[bool, Field(description="When the target is CVE, keep only CISA KEV (actively exploited) CVEs.")] = False,
 ) -> dict[str, Any]:
-    """Multi-hop paths from a node to nodes of another type, using routes derived from the graph schema
-    (for example Group -> Technique -> CAPEC -> CWE -> CVE). Returns each path as nodes and
-    [source, relationship, target] triples that can be cited. Routes through CAPEC/CWE are weakness-level."""
+    """Distinct nodes of one type reachable from a node over multi-hop routes derived from the graph schema
+    (for example Group -> Technique -> CAPEC -> CWE -> CVE), each with example paths as nodes and citable
+    [source, relationship, target] triples. `endpoint_count` is the number of distinct results. Routes that go
+    through CAPEC/CWE are weakness-level associations."""
     return _run("find_paths", {"from_id": from_id, "to_label": to_label, "max_hops": max_hops, "limit": limit, "kev_only": kev_only}, lambda c: tools.find_paths(c, from_id, to_label, max_hops, limit, kev_only))
 
 
@@ -156,9 +157,10 @@ def cve_lookup(
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger("neo4j").setLevel(logging.ERROR)
-    mcp.run()  # stdio
+    logging.basicConfig(level=logging.WARNING)
+    for noisy in ("neo4j", "mcp", "httpx"):
+        logging.getLogger(noisy).setLevel(logging.ERROR)
+    mcp.run(show_banner=False)  # stdio
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 RESULTS_DIR = Path(__file__).resolve().parents[2] / "evals" / "results"
 RUNS_DIR = RESULTS_DIR / "runs"
-SYSTEM_NAMES = ("vector_rag", "text2cypher")
+SYSTEM_NAMES = ("vector_rag", "text2cypher", "agent")
 
 
 # ------------------------------------------------------------------ choosing the model chain
@@ -138,6 +138,22 @@ def summarise(records: list[dict[str, Any]]) -> dict[str, Any]:
         "errors": sum(bool(r["error"]) for r in records),
         "fell_back": sum(bool(r["fell_back"]) for r in records),
         "models": sorted({m for r in records for m in r["models"]}),
+        "agent": agent_stats(records),
+    }
+
+
+def agent_stats(records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Route mix, tool calls and self-check outcomes; only present for agent runs."""
+    extras = [r["extra"] for r in records if r.get("extra", {}).get("route")]
+    if not extras:
+        return None
+    n = len(extras)
+    return {
+        "routes": dict(sorted({k: sum(e["route"] == k for e in extras) for k in {e["route"] for e in extras}}.items())),
+        "tool_calls_per_q": sum(e["tool_calls"] for e in extras) / n,
+        "llm_calls_per_q": statistics.fmean(r["llm_calls"] for r in records),
+        "verdicts": dict(sorted({k: sum(e["verdict"] == k for e in extras) for k in {e["verdict"] for e in extras}}.items())),
+        "budget_exhausted": sum(bool(e["budget_exhausted"]) for e in extras),
     }
 
 
@@ -161,6 +177,13 @@ def render_report(title: str, summary: dict[str, Any], notes: list[str]) -> str:
         f"Query/answer errors: {s['errors']}. Questions that fell back to another model: {s['fell_back']}. Models used: {', '.join(s['models']) or 'none'}."),
         "",
     ]
+    if s.get("agent"):
+        a = s["agent"]
+        lines += [
+            (f"Agent: routes {a['routes']}; {a['tool_calls_per_q']:.1f} tool calls and {a['llm_calls_per_q']:.1f} model calls per question; "
+            f"self-check verdicts {a['verdicts']}; {a['budget_exhausted']} questions hit a budget."),
+            "",
+        ]
     return "\n".join(lines)
 
 
@@ -236,6 +259,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate a baseline on the gold set.")
     parser.add_argument("--system", choices=SYSTEM_NAMES, required=True)
     parser.add_argument("--split", choices=["dev", "test"], default="dev")
+    parser.add_argument("--toolbox", choices=["mcp", "direct"], default="mcp", help="agent only: reach the tools through the MCP server (default) or in-process")
+    parser.add_argument("--llm-check", action="store_true", help="agent only: add the LLM claim check to the self-check")
     parser.add_argument("--final", action="store_true", help="required for --split test: the held-out run, done once at the end")
     parser.add_argument("--ids", help="comma-separated question ids")
     parser.add_argument("--limit", type=int)
@@ -261,13 +286,30 @@ def main() -> None:
     allowed = {record_name(m) for m in chain}
     store = RunStore(RUNS_DIR / run_name)
 
-    driver = get_driver()
+    driver = get_driver()  # the agent over MCP does not use it; one idle connection is harmless
     llm = GroqLLM(models=chain)
     if any(m.startswith("openrouter:") for m in chain):
         b = llm._budget_limit
         log.info("OpenRouter free-model allowance today: %d of %d requests used; this run is resumable across days", b.used(), b.limit)
     try:
-        if args.system == "vector_rag":
+        if args.system == "agent":
+            from redstring_cti.agent.graph import Agent
+            from redstring_cti.agent.state import AgentConfig
+            from redstring_cti.agent.toolbox import DirectToolbox, McpToolbox
+            from redstring_cti.graph.embeddings import embed_query
+            from redstring_cti.mcp_server import tools as mcp_tools
+
+            if args.toolbox == "mcp":
+                toolbox: Any = McpToolbox()
+            else:
+                embedder = load_model()
+                toolbox = DirectToolbox(mcp_tools.Context(driver=driver, embed=lambda t: embed_query(embedder, t)))
+            agent = Agent(llm, toolbox, AgentConfig(llm_check=args.llm_check), fewshot=text2cypher.build_fewshot(gold))
+            try:
+                records = run_system(args.system, lambda q: agent.answer(q.question), questions, store, allowed)
+            finally:
+                agent.close()
+        elif args.system == "vector_rag":
             embedder = load_model()
             records = run_system(args.system, lambda q: vector_rag.answer(llm, driver, embedder, q.question), questions, store, allowed)
         else:
@@ -299,8 +341,16 @@ if __name__ == "__main__":
 
 
 # ------------------------------------------------------------------ comparing saved runs
+def rescore(record: dict[str, Any], gold: GoldQuestion) -> dict[str, Any]:
+    """Recompute the correctness fields from the stored answer with the current scorer (no model calls).
+    Faithfulness (`unsupported_ids`) needs the retrieved evidence, which is not stored, so it is kept as it was."""
+    fresh = score_question(gold, record["answer"], None)
+    keep = {k: record[k] for k in ("unsupported_ids",) if k in record}
+    return {**record, **{k: v for k, v in fresh.items() if k != "unsupported_ids"}, **keep}
+
+
 def compare_runs(
-    run_names: list[str], title: str, notes: list[str], *, models: set[str] | None = None, paired: bool = True
+    run_names: list[str], title: str, notes: list[str], *, models: set[str] | None = None, paired: bool = True, rescored: bool = False
 ) -> str:
     """Side-by-side table of saved runs (reads results.jsonl; no model calls).
 
@@ -308,10 +358,13 @@ def compare_runs(
     summaries: dict[str, dict[str, Any]] = {}
     loaded: dict[str, dict[str, dict[str, Any]]] = {}
     counts: dict[str, tuple[int, int]] = {}
+    gold = {q.id: q for q in load_gold()} if rescored else {}
     for name in run_names:
         loaded[name] = RunStore(RUNS_DIR / name).load(models)
         if not loaded[name]:
             raise SystemExit(f"no results found for run {name!r}")
+        if rescored:
+            loaded[name] = {i: rescore(r, gold[i]) for i, r in loaded[name].items()}
     shared = set.intersection(*(set(r) for r in loaded.values())) if paired else None
     for name, recs in loaded.items():
         chosen = [r for i, r in recs.items() if shared is None or i in shared]
@@ -344,9 +397,10 @@ def compare_main() -> None:
     parser.add_argument("--out", type=Path, default=RESULTS_DIR / "baselines.md")
     parser.add_argument("--title", default="Baseline comparison")
     parser.add_argument("--note", action="append", default=[], help="extra note line (repeatable)")
+    parser.add_argument("--rescore", action="store_true", help="recompute correctness from the stored answers with the current scorer")
     parser.add_argument("--model", action="append", default=[], help="keep only answers from this model (repeatable)")
     args = parser.parse_args()
     notes = ["Same questions, same model, same scorer for every run; only questions answered by every run are compared (paired)."]
-    text = compare_runs(args.runs, args.title, notes + args.note, models=set(args.model) or None)
+    text = compare_runs(args.runs, args.title, notes + args.note, models=set(args.model) or None, rescored=args.rescore)
     args.out.write_text(text)
     print(text)

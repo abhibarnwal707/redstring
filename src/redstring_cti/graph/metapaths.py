@@ -45,8 +45,9 @@ class Metapath:
 
     @property
     def weakness_level(self) -> bool:
-        """True when the route passes through CAPEC or CWE: an association, not observed behaviour."""
-        return bool(WEAKNESS_LEVEL_LABELS & set(self.labels[1:-1])) or bool(WEAKNESS_LEVEL_LABELS & {self.labels[0], self.labels[-1]})
+        """True when CAPEC or CWE is an intermediate step: the start and end then only share a weakness, which is
+        an association and not observed behaviour. A direct CVE -> CWE or CAPEC -> CWE link is a plain fact."""
+        return bool(WEAKNESS_LEVEL_LABELS & set(self.labels[1:-1]))
 
     def describe(self) -> str:
         out = self.labels[0]
@@ -91,13 +92,21 @@ _LABEL = "[l IN labels({v}) WHERE NOT l IN ['Searchable', 'Reference']][0]"
 
 
 def metapath_cypher(path: Metapath, *, kev_only: bool = False) -> str:
-    """Parameterised Cypher for one route. Start node is `$uid`; use with LIMIT supplied by the caller."""
+    """Parameterised Cypher for one route, grouped by END node so a limit counts distinct results, not paths.
+
+    Start node is `$uid`, the caller supplies `$limit` (distinct end nodes) and `$examples` (paths kept per end node).
+    Columns: end_id, end_label, end_name, path_count, examples (a list of {nodes, triples})."""
     parts = ["(n0:Searchable {uid: $uid})"]
     for i, (step, label) in enumerate(zip(path.steps, path.labels[1:], strict=True), start=1):
         rel = f"-[r{i}:{step.rel}]->" if step.forward else f"<-[r{i}:{step.rel}]-"
         parts.append(f"{rel}(n{i}:{label})")
     last = f"n{path.hops}"
     where = f" WHERE {last}.kev = true" if kev_only and path.labels[-1] == "CVE" else ""
-    nodes = f"[{', '.join('{id: ' + _KEY.format(v=f'n{i}') + ', label: ' + _LABEL.format(v=f'n{i}') + ', name: n' + str(i) + '.name}' for i in range(path.hops + 1))}]"
-    triples = f"[{', '.join('[' + _KEY.format(v=f'startNode(r{i})') + ', type(r' + str(i) + '), ' + _KEY.format(v=f'endNode(r{i})') + ']' for i in range(1, path.hops + 1))}]"
-    return f"MATCH {''.join(parts)}{where} RETURN {nodes} AS nodes, {triples} AS triples"
+    nodes = "[" + ", ".join("{id: " + _KEY.format(v=f"n{i}") + ", label: " + _LABEL.format(v=f"n{i}") + f", name: n{i}.name}}" for i in range(path.hops + 1)) + "]"
+    triples = "[" + ", ".join("[" + _KEY.format(v=f"startNode(r{i})") + f", type(r{i}), " + _KEY.format(v=f"endNode(r{i})") + "]" for i in range(1, path.hops + 1)) + "]"
+    return (
+        f"MATCH {''.join(parts)}{where} "
+        f"WITH {last} AS end, count(*) AS path_count, collect({{nodes: {nodes}, triples: {triples}}})[0..$examples] AS examples "
+        f"RETURN {_KEY.format(v='end')} AS end_id, {_LABEL.format(v='end')} AS end_label, end.name AS end_name, path_count, examples "
+        "ORDER BY end_id"
+    )

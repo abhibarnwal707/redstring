@@ -14,7 +14,9 @@ from typing import Any
 from redstring_cti.gold.models import GoldQuestion
 
 ID_REGEX = re.compile(r"\b(?:T\d{4}(?:\.\d{3})?|G\d{4}|S\d{4}|M\d{4}|TA\d{4}|C\d{4}|CAPEC-\d+|CWE-\d+|CVE-\d{4}-\d+)\b")
-_FINAL_LINE = re.compile(r"^\s*\**FINAL\**\s*:\s*(.*)$", re.IGNORECASE | re.MULTILINE)
+# "FINAL:" normally starts a line, but models also write it inline after a sentence (sometimes after a
+# narrow no-break space), so accept it after any whitespace; the last occurrence wins.
+_FINAL_LINE = re.compile(r"(?:^|[\s\u202f\u00a0*])FINAL\**\s*:\s*(.*)$", re.IGNORECASE | re.MULTILINE)
 _NUMBER = re.compile(r"-?\d[\d,]*(?:\.\d+)?")
 _NOT_FOUND_TEXT = re.compile(r"\bnot found\b|\bno (?:such|matching) (?:entity|information|data|result)", re.IGNORECASE)
 CORRECT_F1 = 0.8
