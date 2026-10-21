@@ -1,0 +1,306 @@
+{
+ "type": "bundle",
+ "id": "bundle--fixture",
+ "objects": [
+  {
+   "type": "x-mitre-tactic",
+   "id": "x-mitre-tactic--t1",
+   "name": "Initial Access",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "TA-TEST-1"
+    }
+   ],
+   "description": "Initial Access description.",
+   "x_mitre_shortname": "initial-access"
+  },
+  {
+   "type": "x-mitre-tactic",
+   "id": "x-mitre-tactic--t2",
+   "name": "Stealth",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "TA-TEST-2"
+    }
+   ],
+   "description": "Stealth description.",
+   "x_mitre_shortname": "stealth"
+  },
+  {
+   "type": "intrusion-set",
+   "id": "intrusion-set--g1",
+   "name": "Fixture Bear",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "G-TEST-1"
+    }
+   ],
+   "description": "[Fixture Bear](https://attack.mitre.org/groups/G-TEST-1) is a group.(Citation: Some Report (2021))(Citation: Other)",
+   "aliases": [
+    "Fixture Bear",
+    "Cozy Fixture"
+   ]
+  },
+  {
+   "type": "intrusion-set",
+   "id": "intrusion-set--g2",
+   "name": "Old Group",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "G-TEST-2"
+    }
+   ],
+   "description": "Old Group description.",
+   "x_mitre_deprecated": true
+  },
+  {
+   "type": "intrusion-set",
+   "id": "intrusion-set--g3",
+   "name": "Gone Group",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "G-TEST-3"
+    }
+   ],
+   "description": "Gone Group description.",
+   "revoked": true
+  },
+  {
+   "type": "attack-pattern",
+   "id": "attack-pattern--p1",
+   "name": "Phishing",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "T-TEST-1"
+    }
+   ],
+   "description": "Phishing description.",
+   "x_mitre_is_subtechnique": false,
+   "x_mitre_platforms": [
+    "Windows"
+   ],
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "initial-access"
+    }
+   ]
+  },
+  {
+   "type": "attack-pattern",
+   "id": "attack-pattern--p2",
+   "name": "Spearphishing Attachment",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "T-TEST-1.001"
+    }
+   ],
+   "description": "Spearphishing Attachment description.",
+   "x_mitre_is_subtechnique": true,
+   "x_mitre_platforms": [
+    "Windows",
+    "macOS"
+   ],
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "initial-access"
+    },
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "stealth"
+    }
+   ]
+  },
+  {
+   "type": "attack-pattern",
+   "id": "attack-pattern--p3",
+   "name": "Dead Technique",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "T-TEST-2"
+    }
+   ],
+   "description": "Dead Technique description.",
+   "x_mitre_deprecated": true
+  },
+  {
+   "type": "attack-pattern",
+   "id": "attack-pattern--p4",
+   "name": "Orphan Sub",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "T-TEST-3.001"
+    }
+   ],
+   "description": "Orphan Sub description.",
+   "x_mitre_is_subtechnique": true,
+   "kill_chain_phases": [
+    {
+     "kill_chain_name": "mitre-attack",
+     "phase_name": "no-such-tactic"
+    }
+   ]
+  },
+  {
+   "type": "malware",
+   "id": "malware--m1",
+   "name": "FixtureMal",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "S-TEST-1"
+    }
+   ],
+   "description": "FixtureMal description.",
+   "x_mitre_aliases": [
+    "FixtureMal",
+    "FM"
+   ]
+  },
+  {
+   "type": "tool",
+   "id": "tool--tl1",
+   "name": "FixtureTool",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "S-TEST-2"
+    }
+   ],
+   "description": "FixtureTool description.",
+   "x_mitre_aliases": [
+    "FixtureTool"
+   ]
+  },
+  {
+   "type": "course-of-action",
+   "id": "course-of-action--c1",
+   "name": "User Training",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "M-TEST-1"
+    }
+   ],
+   "description": "User Training description."
+  },
+  {
+   "type": "campaign",
+   "id": "campaign--cp1",
+   "name": "Fixture Campaign",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "C-TEST-1"
+    }
+   ],
+   "description": "Fixture Campaign description.",
+   "aliases": [
+    "FC"
+   ],
+   "first_seen": "2020-01-01T00:00:00.000Z",
+   "last_seen": "2021-01-01T00:00:00.000Z"
+  },
+  {
+   "type": "identity",
+   "id": "identity--i1",
+   "name": "MITRE",
+   "external_references": [
+    {
+     "source_name": "mitre-attack",
+     "external_id": "X"
+    }
+   ],
+   "description": "MITRE description."
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r1",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--g1",
+   "target_ref": "attack-pattern--p2",
+   "description": "[Fixture Bear](https://x.y/G-TEST-1) used spearphishing.(Citation: Rep)"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r2",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--g1",
+   "target_ref": "malware--m1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r3",
+   "relationship_type": "uses",
+   "source_ref": "malware--m1",
+   "target_ref": "attack-pattern--p1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r4",
+   "relationship_type": "uses",
+   "source_ref": "campaign--cp1",
+   "target_ref": "tool--tl1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r5",
+   "relationship_type": "mitigates",
+   "source_ref": "course-of-action--c1",
+   "target_ref": "attack-pattern--p1",
+   "description": "Train users."
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r6",
+   "relationship_type": "subtechnique-of",
+   "source_ref": "attack-pattern--p2",
+   "target_ref": "attack-pattern--p1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r7",
+   "relationship_type": "attributed-to",
+   "source_ref": "campaign--cp1",
+   "target_ref": "intrusion-set--g1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r8",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--g2",
+   "target_ref": "attack-pattern--p1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r9",
+   "relationship_type": "uses",
+   "source_ref": "intrusion-set--g1",
+   "target_ref": "attack-pattern--p3"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r10",
+   "relationship_type": "uses",
+   "source_ref": "attack-pattern--p1",
+   "target_ref": "intrusion-set--g1"
+  },
+  {
+   "type": "relationship",
+   "id": "relationship--r11",
+   "relationship_type": "detects",
+   "source_ref": "course-of-action--c1",
+   "target_ref": "attack-pattern--p1"
+  }
+ ]
+}

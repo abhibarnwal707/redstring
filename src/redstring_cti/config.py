@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ATTACK_VERSION = "20.0"
+NVD_START_YEAR = 2002
+RAW_DIR = Path(__file__).resolve().parents[2] / "data" / "raw"
 
 
 class Settings(BaseSettings):
