@@ -22,5 +22,5 @@ were then run once for every system. Test sets: 78 real-report chunks (AnnoCTR) 
   The training labels have no such review.
 - Procedure-sentence gains are not leakage: only 1% of test sentences are within 0.8 token overlap of a training sentence
   (median best overlap 0.32), and train and test never share a source object.
-- Evaluation ran on the 16-bit base plus the adapter on a Mac; the adapter was trained on the 4-bit base.
+- The main table is the 16-bit base plus the adapter on a Mac (the adapter was trained on the 4-bit base). The Q8_0 GGUF that users download scores 0.585 entity F1 and 0.583 technique F1 on the real-report test (`extractor_quantization.md`).
 - The zero-shot API baseline was not prompt-tuned; a few-shot or schema-aware prompt would likely narrow the entity gap.

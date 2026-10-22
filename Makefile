@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app ollama-model doctor quickstart graph-restore model-fetch serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-vector-expand eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app ollama-model doctor quickstart graph-restore model-fetch serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -80,3 +80,6 @@ graph-restore:
 
 model-fetch:
 	uv run python -m redstring_cti.local_setup model-fetch $(ARGS)
+
+eval-vector-expand:
+	uv run python evals/runners/run_rag_eval.py --system vector_expand --split dev

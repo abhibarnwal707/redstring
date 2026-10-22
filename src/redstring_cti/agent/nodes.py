@@ -175,7 +175,10 @@ class AgentNodes:
                 entities.setdefault(c["id"], {"id": c["id"], "label": c["label"], "name": c["name"], "ambiguous": len(picked) > 1})
         resolved = list(entities.values())[:MAX_ENTITIES]
         before = (plan.route, plan.pattern, plan.kev_only)
-        plan = repair_plan(plan, state["question"], resolved, unresolved)
+        if run.config.use_templates:
+            plan = repair_plan(plan, state["question"], resolved, unresolved)
+        elif plan.route in ("graph", "hybrid"):
+            plan.pattern = "cypher"  # ablation: the model writes Cypher for everything
         update: dict[str, Any] = {"entities": resolved, "unresolved": unresolved, "tool_calls": len(run.tool_log)}
         if (plan.route, plan.pattern, plan.kev_only) != before:
             update.update(plan=plan.model_dump(), route=plan.route, pattern=plan.pattern)
@@ -326,6 +329,8 @@ class AgentNodes:
     def self_check(self, state: AgentState) -> dict[str, Any]:
         run, text = state["run"], state["draft"] or ""
         evidence = state.get("evidence", [])
+        if not run.config.self_check:  # ablation: no citation check, no revision, no caveats
+            return {"verdict": "pass", "draft": text, "citations": extract_ids(text), "caveats": [], "tokens": run.tokens}
         _, visible = ev.render(evidence, run.config.evidence_chars)
         allowed = set(visible) | set(extract_ids(state["question"])) | {e["id"] for e in state.get("entities", [])}
         cited = extract_ids(text)

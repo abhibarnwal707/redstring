@@ -7,18 +7,34 @@ on:
 
 jobs:
   checks:
+    name: lint, types, unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      NEO4J_PASSWORD: ci-not-used   # Settings requires it; this job has no database and DB tests skip themselves
+      NEO4J_URI: bolt://localhost:1
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-      - name: Install (CPU-only torch keeps the install small)
+      - name: Install (Linux gets the CPU-only torch wheel, so the install stays small)
         run: uv sync --frozen
-      - name: Lint
-        run: uv run ruff check .
-      - name: Types
-        run: uv run mypy src tests
-      - name: Tests (database and data-dependent tests skip themselves without Neo4j and the raw files)
+      - run: uv run ruff check .
+      - run: uv run mypy src tests
+      - run: uv run pytest -q
+
+  integration:
+    name: integration tests against the published graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: Restore the published graph (109,515 nodes) into Neo4j in Docker
+        run: uv run python -m redstring_cti.local_setup graph-restore
+      - name: Tests (the gold-set answers, MCP tools, agent and ingestion against the real graph; tests that need the raw downloads skip)
         run: uv run pytest -q

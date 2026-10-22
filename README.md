@@ -56,6 +56,7 @@ Real-report test (78 chunks, expert-annotated AnnoCTR, labels converted automati
 | Fine-tuned v1 (2 epochs) | 97.4% | 0.516 | 0.222 | 3.7% |
 | gpt-oss-120b API, zero-shot | 100% | 0.316 | 0.448 | 4.8% |
 | **Fine-tuned v2 + schema-constrained decoding** | **100%** | **0.605** | **0.597** | **0%** |
+| Same model as the Q8_0 file you download | 100% | 0.585 | 0.583 | 0% |
 
 Honest reading: the v1 run was not worth it; the longer v2 run was. 60% of the real-report technique ids are written in the text
 (MITRE tables); recall is 72% on those but only 21% on ids that must be inferred from behaviour (the API model: 3%). The test

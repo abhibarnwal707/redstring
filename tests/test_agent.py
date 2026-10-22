@@ -497,3 +497,24 @@ def test_report_questions_are_routed_without_a_planner_call(driver: Driver) -> N
         assert "T1566.001" in result.answer
     finally:
         upsert.drop_report(driver, rid)
+
+
+# ------------------------------------------------------------------ ablation switches
+def test_ablation_without_self_check_lets_a_fabricated_id_through(box: DirectToolbox) -> None:
+    bad = "T1486 is mitigated by M1040 and M9999.\nFINAL: M1040, M9999"
+    llm = ScriptedLLM(plan(target="Mitigation"), answer=[bad, bad])
+    r = agent(llm, box, self_check=False).run("Which mitigations apply to T1486?")
+    assert llm.kinds() == ["plan", "answer"]  # no revision call
+    assert "M9999" in r.answer and r.verdict == "pass" and r.caveats == []  # exactly what the self-check exists to prevent
+    on = agent(ScriptedLLM(plan(target="Mitigation"), answer=[bad, bad]), box).run("Which mitigations apply to T1486?")
+    assert "M9999" not in on.answer  # the same answer is caught when the check is on
+
+
+def test_ablation_without_templates_asks_the_model_for_cypher(box: DirectToolbox) -> None:
+    q = "MATCH (m:Mitigation)-[:MITIGATES]->(:Technique {attack_id: 'T1486'}) RETURN DISTINCT m.attack_id AS id ORDER BY id LIMIT 200"
+    llm = ScriptedLLM(plan(pattern="neighbors", target="Mitigation"), cypher=[q])
+    r = agent(llm, box, use_templates=False).run("Which mitigations apply to T1486?")
+    assert "cypher" in llm.kinds() and [t["tool"] for t in r.tool_log] == ["cypher_query"] and r.pattern == "cypher"
+    assert set(r.citations) == {"M1040", "M1053"}  # the answer is the same; only the route changed
+    templated = agent(ScriptedLLM(plan(pattern="neighbors", target="Mitigation")), box).run("Which mitigations apply to T1486?")
+    assert [t["tool"] for t in templated.tool_log] == ["get_neighbors"]

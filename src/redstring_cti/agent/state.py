@@ -79,6 +79,8 @@ class AgentConfig:
     timeout_s: float = 300.0  # wall clock, includes free-tier rate-limit waits
     max_revisions: int = 1
     llm_check: bool = False  # extra LLM claim check in self_check (ablation: faithfulness vs latency/tokens)
+    use_templates: bool = True  # ablation: False = free-form Cypher for every graph question (no neighbors / find_paths templates)
+    self_check: bool = True  # ablation: False = accept the first answer, no citation check, no revision
     reasoning_effort: str = "low"
     plan_max_tokens: int = 400
     answer_max_tokens: int = 500

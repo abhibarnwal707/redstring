@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 RESULTS_DIR = Path(__file__).resolve().parents[2] / "evals" / "results"
 RUNS_DIR = RESULTS_DIR / "runs"
-SYSTEM_NAMES = ("vector_rag", "text2cypher", "agent")
+SYSTEM_NAMES = ("vector_rag", "vector_expand", "text2cypher", "agent")
 
 
 # ------------------------------------------------------------------ choosing the model chain
@@ -261,6 +261,8 @@ def main() -> None:
     parser.add_argument("--split", choices=["dev", "test"], default="dev")
     parser.add_argument("--toolbox", choices=["mcp", "direct"], default="mcp", help="agent only: reach the tools through the MCP server (default) or in-process")
     parser.add_argument("--llm-check", action="store_true", help="agent only: add the LLM claim check to the self-check")
+    parser.add_argument("--no-templates", action="store_true", help="agent only, ablation: Cypher for every graph question instead of the neighbors / find_paths templates")
+    parser.add_argument("--no-self-check", action="store_true", help="agent only, ablation: no citation check and no revision")
     parser.add_argument("--final", action="store_true", help="required for --split test: the held-out run, done once at the end")
     parser.add_argument("--ids", help="comma-separated question ids")
     parser.add_argument("--limit", type=int)
@@ -282,7 +284,8 @@ def main() -> None:
     exclude = set() if args.include_fewshot else set(text2cypher.FEWSHOT_IDS)  # same questions for every system
     questions = select_questions(gold, args.split, ids=args.ids.split(",") if args.ids else None, limit=args.limit, exclude=exclude)
     chain_tag, chain = resolve_chain(args.llm_chain)
-    run_name = args.run_name or (f"{args.system}-{args.split}" + ("" if chain_tag == "groq-120b" else f"-{chain_tag}"))
+    ablation = ("-notemplates" if args.no_templates else "") + ("-noselfcheck" if args.no_self_check else "") + ("-llmcheck" if args.llm_check else "")
+    run_name = args.run_name or (f"{args.system}-{args.split}{ablation}" + ("" if chain_tag == "groq-120b" else f"-{chain_tag}"))
     allowed = {record_name(m) for m in chain}
     store = RunStore(RUNS_DIR / run_name)
 
@@ -304,11 +307,16 @@ def main() -> None:
             else:
                 embedder = load_model()
                 toolbox = DirectToolbox(mcp_tools.Context(driver=driver, embed=lambda t: embed_query(embedder, t)))
-            agent = Agent(llm, toolbox, AgentConfig(llm_check=args.llm_check), fewshot=text2cypher.build_fewshot(gold))
+            agent = Agent(llm, toolbox, AgentConfig(llm_check=args.llm_check, use_templates=not args.no_templates, self_check=not args.no_self_check), fewshot=text2cypher.build_fewshot(gold))
             try:
                 records = run_system(args.system, lambda q: agent.answer(q.question), questions, store, allowed)
             finally:
                 agent.close()
+        elif args.system == "vector_expand":
+            from redstring_cti.retrieval import vector_expand
+
+            embedder = load_model()
+            records = run_system(args.system, lambda q: vector_expand.answer(llm, driver, embedder, q.question), questions, store, allowed)
         elif args.system == "vector_rag":
             embedder = load_model()
             records = run_system(args.system, lambda q: vector_rag.answer(llm, driver, embedder, q.question), questions, store, allowed)

@@ -16,4 +16,4 @@ Findings
 - The merged 16-bit model reproduces the adapter-on-base numbers exactly (technique F1 0.578): the merge and GGUF conversion are correct.
 - Q4_K_M costs about 0.09 technique F1 and 0.09 relation F1; Q8_0 costs about 0.025. The Space uses Q8_0 with schema-constrained output.
 - Constraining fixes format (valid JSON, no made-up ids) at every size and does not change accuracy.
-- Test-set scores were measured on the 16-bit build; the Q8_0 test scores have not been run.
+- The Q8_0 build was also run once on the test sets (constrained, Ollama): real reports entity F1 0.585 and technique F1 0.583 (16-bit: 0.605 and 0.597); ATT&CK sentences entity 0.808, technique 0.512, relation 0.490 (identical to 16-bit). It still beats the zero-shot 120B API model (0.316 and 0.448 on real reports). This is the build users download.
