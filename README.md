@@ -141,7 +141,7 @@ group exploited this CVE"; the tools say so in their output.
 
 ## Demo recording
 
-`docs/demo_script.md` has a three-minute walk-through with questions that are known to work.
+`docs/demo_script.md` is a complete beginner-friendly guide: starting Docker, Ollama, Neo4j and the app, rehearsing, recording a three-minute video with what to say, editing and sharing.
 
 ## Hosted deployment
 
