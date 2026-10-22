@@ -2,7 +2,7 @@
 
 Everything with logic is a plain function so it can be tested without a browser. The demo is read-only: the Extract tab
 links entities against the graph but never writes to it. Configuration comes from the environment:
-  REDSTRING_EXTRACTOR  hf | ollama | llama:<path-to-gguf>   (default hf)
+  REDSTRING_EXTRACTOR  ollama | hf | llama:<path-to-gguf>   (default ollama)
   REDSTRING_RATE_LIMIT questions per visitor per hour (default 10)
   REDSTRING_MAX_CHUNKS report chunks processed per extraction (default 3)"""
 
@@ -43,6 +43,14 @@ class RateLimiter:
             return False, int(self.window - (now - hits[0])) + 1
         hits.append(now)
         return True, 0
+
+
+NO_KEY_MESSAGE = ("The Ask tab needs a free Groq API key (the agent's language model). Create one at https://console.groq.com/keys, "
+                  "put `GROQ_API_KEY=...` in the `.env` file, and restart the app. The Extract tab and the graph work without it.")
+
+
+def agent_key_missing(groq_key: str | None) -> bool:
+    return not (groq_key or "").strip()
 
 
 def format_answer(result: Any) -> tuple[str, str]:
@@ -102,7 +110,7 @@ def build_extractor(kind: str, live_ids: set[str]) -> upsert.Extractor:
     from redstring_cti.extractor import backends
 
     if kind == "ollama":
-        return backends.OllamaExtractor(os.environ.get("REDSTRING_OLLAMA_MODEL", "redstring-extractor-q8"), os.environ.get("REDSTRING_OLLAMA_URL", "http://localhost:11434"), live_ids=live_ids)
+        return backends.OllamaExtractor(os.environ.get("REDSTRING_OLLAMA_MODEL", "redstring-extractor"), os.environ.get("REDSTRING_OLLAMA_URL", "http://localhost:11434"), live_ids=live_ids)
     if kind.startswith("llama:"):
         return backends.LlamaCppExtractor(kind.split(":", 1)[1], live_ids)
     return backends.HFExtractor(constrain=True)
@@ -113,6 +121,7 @@ def build_app() -> Any:
 
     from redstring_cti.agent.graph import Agent
     from redstring_cti.agent.toolbox import McpToolbox
+    from redstring_cti.config import get_settings
     from redstring_cti.graph.loader import get_driver
     from redstring_cti.llm import LLMClient
 
@@ -127,12 +136,14 @@ def build_app() -> Any:
 
     def extractor() -> Any:
         if "extractor" not in lazy:
-            lazy["extractor"] = build_extractor(os.environ.get("REDSTRING_EXTRACTOR", "hf"), live_technique_ids(get_driver()))
+            lazy["extractor"] = build_extractor(os.environ.get("REDSTRING_EXTRACTOR", "ollama"), live_technique_ids(get_driver()))
         return lazy["extractor"]
 
     def ask(question: str, request: gr.Request) -> tuple[str, str]:
         if not question.strip():
             return "Type a question.", ""
+        if agent_key_missing(get_settings().groq_api_key):
+            return NO_KEY_MESSAGE, ""
         ok, wait = limiter.allow(request.client.host if request and request.client else "anonymous")
         if not ok:
             return f"Rate limit reached for this demo: try again in about {wait // 60 + 1} minute(s).", ""
@@ -168,6 +179,9 @@ def build_app() -> Any:
 
 
 def main() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT / ".env")  # REDSTRING_* settings and API keys live in .env
     build_app().launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", "7860")))
 
 

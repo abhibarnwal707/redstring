@@ -52,3 +52,9 @@ def test_benchmarks_are_read_from_disk_and_missing_files_are_named(tmp_path: Pat
 def test_live_techniques_come_from_the_graph(driver) -> None:  # type: ignore[no-untyped-def]
     live = app.live_technique_ids(driver)
     assert len(live) == 706 and "T1566.001" in live and "T1086" not in live  # T1086 was revoked in favour of T1059.001
+
+
+def test_missing_groq_key_is_detected_and_explained() -> None:
+    assert app.agent_key_missing(None) and app.agent_key_missing("") and app.agent_key_missing("   ")
+    assert not app.agent_key_missing("gsk_abc")
+    assert "console.groq.com/keys" in app.NO_KEY_MESSAGE and ".env" in app.NO_KEY_MESSAGE

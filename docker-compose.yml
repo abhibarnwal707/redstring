@@ -1,10 +1,10 @@
 services:
   neo4j:
     image: neo4j:5-community
-    ports: ["7474:7474", "7687:7687"]
+    ports: ["${NEO4J_HTTP_PORT:-7474}:7474", "${NEO4J_BOLT_PORT:-7687}:7687"]
     environment:
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
-      NEO4J_server_memory_heap_max__size: 2G
-      NEO4J_server_memory_pagecache_size: 2G
+      NEO4J_server_memory_heap_max__size: ${NEO4J_HEAP:-2G}
+      NEO4J_server_memory_pagecache_size: ${NEO4J_PAGECACHE:-2G}
       NEO4J_db_transaction_timeout: 30s
-    volumes: ["./data/neo4j:/data"]
+    volumes: ["${NEO4J_DATA_DIR:-./data/neo4j}:/data"]

@@ -1,3 +1,5 @@
+> **Status: prepared and tested locally, not used.** Hugging Face now requires a PRO subscription for Docker and Gradio Spaces, so the supported way to run the project is on your own computer: see [local_setup.md](local_setup.md). Everything below still applies to any Docker host.
+
 # How RedString-CTI is deployed
 
 Ollama runs on one laptop, so it is only the local-development path. The public demo has no GPU and no laptop behind it.

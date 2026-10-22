@@ -8,6 +8,26 @@ Qwen3-1.7B that turns threat reports into entities, ATT&CK techniques and relati
 quantisation) and report ingestion are done. The agent's evaluation on the 109 development questions is **not finished** (it
 needs a day of the free Groq token allowance) and the held-out test run has not been made, so no agent accuracy is claimed here yet.
 
+## Quickstart (run it on your own computer)
+
+Nothing needs to be trained or built: the graph and our fine-tuned model are downloaded ready-made (about 2.5 GB in total).
+
+**You need:** [Docker Desktop](https://docs.docker.com/get-docker/) (it runs Neo4j for you, nothing else to install for the database),
+[uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download) (runs our extractor model), git,
+about **8 GB RAM minimum (16 GB recommended)** and **15 GB free disk**. No GPU is needed. Details and what was tested: [docs/local_setup.md](docs/local_setup.md).
+
+```bash
+git clone https://github.com/abhibarnwal707/redstring.git && cd redstring
+uv sync                 # Python dependencies (installs Python 3.12 if needed)
+make doctor             # checks your machine and tells you what is missing
+make quickstart         # starts Neo4j, restores the graph, downloads the model, runs a smoke test (5-10 minutes)
+make app                # open http://localhost:7860
+```
+
+Two tabs need different things: **Extract** (paste a threat report, get entities, ATT&CK techniques and graph links) works with just the
+steps above. **Ask** (questions answered from the graph, with citations) also needs a free [Groq API key](https://console.groq.com/keys):
+put `GROQ_API_KEY=...` in the `.env` file that `make quickstart` creates, then restart the app.
+
 ## Results so far
 
 ### Retrieval baselines (109 dev questions, gpt-oss-120b, same scorer; `evals/results/baselines.md`)
@@ -105,31 +125,27 @@ group exploited this CVE"; the tools say so in their output.
 4. **Answer** (one model call) with inline citations and a machine-readable `FINAL:` line.
 5. **Self-check**: every cited ID must be in the evidence, otherwise one revision; an ID that survives is removed and a caveat is added. Budgets (8 tool calls, a token budget, a time limit) are enforced in code.
 
-## Run it
-
-```bash
-uv sync
-cp .env.example .env            # NEO4J_PASSWORD, GROQ_API_KEY (agent LLM), HF_TOKEN
-make up && make download && make load && make embed     # graph (about an hour, mostly the NVD download)
-make sanity-agent               # 10 end-to-end questions
-make app                        # Gradio UI: Ask / Extract / benchmark tables
-make ingest-report URL=https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-061a ARGS="--extractor hf --constrain"
-make test                       # 500 tests; database tests skip without Neo4j
-```
+## Everyday commands
 
 | Task | Command |
 |---|---|
-| Baselines and agent evaluation | `make eval-vector`, `make eval-t2c`, `make eval-agent` (resumable; the Groq free tier has a daily token cap) |
-| Build the fine-tuning data | `make finetune-data` |
-| Evaluate the extractor | `make eval-extractor SPLIT=val` |
-| Ollama / GGUF build | `make ollama-model` |
-| Incremental data update | `make update` (`--dry-run` first) |
+| Check the machine / set everything up | `make doctor` / `make quickstart` |
+| Start Neo4j / stop it | `make up` / `make down` |
+| Run the demo app | `make app` |
+| Ingest a real report into the graph | `make ingest-report URL=https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-061a ARGS="--extractor ollama"` (add `--dry-run` to preview; `--drop` removes it) |
+| Rebuild the graph from the public sources instead of downloading it | `make download && make load && make embed` (about an hour; needs ~15 GB) |
+| Evaluate (research use) | `make eval-vector`, `make eval-t2c`, `make eval-agent` (resumable; the Groq free tier has a daily token cap), `make eval-extractor SPLIT=val` |
+| Rebuild the model files | `make finetune-data`, `make ollama-model` (training itself ran on Kaggle: `finetune/notebooks/`) |
+| Tests | `make test` (database tests skip when Neo4j is not running) |
 
-## Deployment
+## Demo recording
 
-Ollama is for local development only. The public demo runs on a free Hugging Face Space: Neo4j and the app in one container, a
-109,515-node subset graph (all 150 gold answers identical on it), the extractor as a Q8_0 GGUF on CPU through llama.cpp, and the
-agent LLM on Groq with a per-visitor rate limit. Details, measured CPU speed and what is not yet verified: `docs/deployment.md`.
+`docs/demo_script.md` has a three-minute walk-through with questions that are known to work.
+
+## Hosted deployment
+
+A hosted demo was prepared (`deploy/`, `docs/deployment.md`: one container with Neo4j, the quantised model and the app) and tested
+locally, but Hugging Face no longer offers free Docker Spaces, so the supported way to run the project is locally, as above.
 
 ## Limitations
 

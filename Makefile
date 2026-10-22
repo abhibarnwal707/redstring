@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app ollama-model serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app ollama-model doctor quickstart graph-restore model-fetch serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -68,3 +68,15 @@ app:
 
 ollama-model:
 	bash finetune/build_gguf.sh
+
+doctor:
+	uv run python -m redstring_cti.local_setup doctor
+
+quickstart:
+	uv run python -m redstring_cti.local_setup quickstart
+
+graph-restore:
+	uv run python -m redstring_cti.local_setup graph-restore $(ARGS)
+
+model-fetch:
+	uv run python -m redstring_cti.local_setup model-fetch $(ARGS)
