@@ -53,9 +53,46 @@ def agent_key_missing(groq_key: str | None) -> bool:
     return not (groq_key or "").strip()
 
 
-def format_answer(result: Any) -> tuple[str, str]:
+NOT_FOUND_TEXT = "This is not in the knowledge graph: no matching data was found, so the agent does not guess."
+MAX_NAMED = 40
+
+
+def strip_final(text: str) -> str:
+    """Hide the machine-readable `FINAL:` protocol line from the person reading the answer. If nothing else is left and the
+    line said NOT_FOUND, say so in words."""
+    lines = text.strip().splitlines()
+    kept = [ln for ln in lines if not ln.strip().lstrip("*").upper().startswith("FINAL")]
+    body = "\n".join(kept).strip()
+    if not body and any(ln.strip().lstrip("*").upper().replace(" ", "").startswith("FINAL:NOT_FOUND") for ln in lines):
+        return NOT_FOUND_TEXT
+    return body
+
+
+def id_names(driver: Any, ids: list[str]) -> dict[str, str]:
+    """Names of the cited graph IDs (CVEs have none, so they are left out)."""
+    if not ids:
+        return {}
+    rows, _, _ = driver.execute_query(
+        "UNWIND $ids AS i MATCH (n) WHERE coalesce(n.attack_id, n.capec_id, n.cwe_id) = i AND n.name IS NOT NULL RETURN i AS id, n.name AS name", ids=ids[:200])
+    return {r["id"]: r["name"] for r in rows}
+
+
+def named_items(citations: list[str], names: dict[str, str]) -> str:
+    """A compact table of cited IDs and their names, so a list of bare IDs becomes readable."""
+    rows = [(i, names[i]) for i in citations if i in names][:MAX_NAMED]
+    if not rows:
+        return ""
+    more = len([i for i in citations if i in names]) - len(rows)
+    table = "\n".join(f"| {i} | {n} |" for i, n in rows)
+    return "**Cited items**\n\n| ID | Name |\n|---|---|\n" + table + (f"\n\n_and {more} more_" if more > 0 else "")
+
+
+def format_answer(result: Any, names: dict[str, str] | None = None) -> tuple[str, str]:
     """(markdown answer, markdown trace) from an AgentResult."""
-    answer = result.answer.strip() or "No answer."
+    answer = strip_final(result.answer) or "No answer."
+    table = named_items(list(getattr(result, "citations", []) or []), names or {})
+    if table:
+        answer += "\n\n" + table
     trace = [f"**Route:** {result.route}" + (f" / {result.pattern}" if result.pattern else ""), (f"**Model calls:** {result.llm_calls}, **tool calls:** {result.tool_calls}, "
              f"**tokens:** {result.tokens:,}, **cost:** ${result.cost_usd:.5f}, **time:** {result.latency_ms / 1000:.1f}s")]
     if result.entities:
@@ -148,7 +185,8 @@ def build_app() -> Any:
         if not ok:
             return f"Rate limit reached for this demo: try again in about {wait // 60 + 1} minute(s).", ""
         try:
-            return format_answer(agent().run(question))
+            result = agent().run(question)
+            return format_answer(result, id_names(get_driver(), list(result.citations)))
         except Exception as exc:  # noqa: BLE001  the UI must show a failure, not crash
             return f"The agent failed: {type(exc).__name__}: {exc}", ""
 

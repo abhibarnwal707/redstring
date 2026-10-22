@@ -58,3 +58,32 @@ def test_missing_groq_key_is_detected_and_explained() -> None:
     assert app.agent_key_missing(None) and app.agent_key_missing("") and app.agent_key_missing("   ")
     assert not app.agent_key_missing("gsk_abc")
     assert "console.groq.com/keys" in app.NO_KEY_MESSAGE and ".env" in app.NO_KEY_MESSAGE
+
+
+def test_final_line_is_hidden_and_not_found_is_explained() -> None:
+    assert app.strip_final("APT29 uses T1566.\nFINAL: T1566") == "APT29 uses T1566."
+    assert app.strip_final("**FINAL:** T1566\nSome text first") == "Some text first"
+    assert app.strip_final("FINAL: NOT_FOUND") == app.NOT_FOUND_TEXT  # nothing else to show: say it in words
+    assert app.strip_final("The graph has no EPSS data.\nFINAL: NOT_FOUND") == "The graph has no EPSS data."
+    assert app.strip_final("") == ""
+
+
+def test_cited_ids_get_names_in_a_compact_table() -> None:
+    table = app.named_items(["T1566", "CVE-2024-1", "T1059"], {"T1566": "Phishing", "T1059": "Command and Scripting Interpreter"})
+    assert "| T1566 | Phishing |" in table and "| T1059 |" in table and "CVE-2024-1" not in table  # CVEs carry no name
+    assert app.named_items(["CVE-2024-1"], {}) == ""
+    many = {f"T{i:04d}": f"Name {i}" for i in range(100)}
+    assert "_and 60 more_" in app.named_items(list(many), many) and app.named_items(list(many), many).count("| T") == app.MAX_NAMED
+
+
+def test_format_answer_shows_names_and_hides_the_protocol_line() -> None:
+    result = SimpleNamespace(answer="APT29 uses these.\nFINAL: T1566", route="graph", pattern="neighbors", llm_calls=1, tool_calls=1, tokens=10, cost_usd=0.0,
+                             latency_ms=10.0, entities=[], verdict="pass", paths=[], citations=["T1566"])
+    answer, _ = app.format_answer(result, {"T1566": "Phishing"})
+    assert "FINAL" not in answer and "| T1566 | Phishing |" in answer
+
+
+def test_id_names_reads_real_names_from_the_graph(driver) -> None:  # type: ignore[no-untyped-def]
+    names = app.id_names(driver, ["T1566.001", "G0016", "CVE-2021-44228", "M1017"])
+    assert names["T1566.001"] == "Spearphishing Attachment" and names["G0016"] == "APT29" and "CVE-2021-44228" not in names
+    assert app.id_names(driver, []) == {}

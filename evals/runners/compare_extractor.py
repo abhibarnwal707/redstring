@@ -20,8 +20,8 @@ LABELS = {
     "qwen3-1.7b-qlora-constrained": "QLoRA v1 + schema-constrained decoding",
     "qwen3-1.7b-qlora-rep11": "QLoRA v1 + repetition penalty 1.1",
     "qwen3-1.7b-qlora-v2-constrained": "QLoRA v2 + schema-constrained decoding",
-    "ollama-v2-q8-constrained": "QLoRA v2 Q8_0 GGUF + constrained (the model users download)",
     "qwen3-1.7b-qlora-v2": "Qwen3-1.7B QLoRA v2 (4 epochs, cap 25, real reports x3)",
+    "ollama-v2-q8-constrained": "QLoRA v2 Q8_0 GGUF + constrained (the model users download)",
     "api-gptoss120b": "API reference: gpt-oss-120b (Groq), zero-shot",
 }
 SPLITS = [("val", "Validation (197 rows: 150 ATT&CK sentences + 47 report chunks)"), ("test_annoctr", "Test: real-report chunks (AnnoCTR, 78)"), ("test_procedures", "Test: ATT&CK sentences (fixed sample of 100)")]
