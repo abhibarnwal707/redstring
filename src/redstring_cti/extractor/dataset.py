@@ -33,7 +33,7 @@ OUT_DIR = ROOT / "finetune" / "data"
 REPORT_PATH = ROOT / "evals" / "results" / "finetune_dataset.md"
 ANNOCTR_ROOT = RAW_DIR / "finetune" / "annoctr"
 PROC_TRAIN_SHARE, PROC_VAL_SHARE = 0.90, 0.04  # the rest is the procedure test set
-CAP_PER_TECHNIQUE = 10
+CAP_PER_TECHNIQUE = 25
 PROC_VAL_MAX, PROC_TEST_MAX = 150, 600
 REVIEW_SHEET_SIZE = 80
 SEED = 42
@@ -122,6 +122,8 @@ def validate(ds: Dataset, ids: AttackIds) -> list[str]:
                 problems.append(f"document {e.key} appears in both {other} and {name}")
             if any(t.attack_id not in ids.live for t in e.extraction.techniques):
                 problems.append(f"{e.key}: technique not live in ATT&CK {ATTACK_VERSION}")
+            if len(e.text) > annoctr.MAX_CHUNK_CHARS * 1.05:
+                problems.append(f"{e.key}: text of {len(e.text)} characters exceeds the chunk limit")
             if any(en.text not in e.text for en in e.extraction.entities):
                 problems.append(f"{e.key}: an entity string is missing from the text")
             if Extraction.from_json(e.extraction.to_json()).to_json() != e.extraction.to_json():
@@ -159,6 +161,8 @@ def write(ds: Dataset, out_dir: Path) -> None:
     review = sample([e for e in ds.test_annoctr if e.extraction.techniques], REVIEW_SHEET_SIZE * 3 // 4) + sample(
         [e for e in ds.test_annoctr if not e.extraction.techniques], REVIEW_SHEET_SIZE // 4
     )
+    if (out_dir / "review_sheet.csv").exists():
+        return  # never overwrite a sheet that may hold hand-written verdicts
     with (out_dir / "review_sheet.csv").open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["id", "doc_id", "text", "entities", "techniques", "verified (y/n)", "corrections"])

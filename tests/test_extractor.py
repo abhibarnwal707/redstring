@@ -237,6 +237,21 @@ def test_annoctr_drops_chunks_with_implicit_or_ambiguous_techniques(tmp_path: Pa
     assert annoctr.load_split(tmp_path, "train", ids, Counter()) == []  # one phrase, two ids: dropped
 
 
+def test_annoctr_drops_an_unbreakable_blob_sentence(tmp_path: Path) -> None:
+    """Regression: two base64 images became 66K and 133K character 'chunks' in validation and broke generation."""
+    rows = [ner_row("img", 0, "A normal opening sentence about the report."), ner_row("img", 1, "![](data:image/png;base64," + "A" * 60000 + ")"),
+            ner_row("img", 2, "A closing sentence that is fine.")]
+    write_annoctr(tmp_path, rows, [{"entity_type": "GROUP", "label_link": "x", "mention": "x", "document": "img"}])
+    out = annoctr.load_split(tmp_path, "train", AttackIds(live=set()), Counter())
+    assert all(len(e.text) <= annoctr.MAX_CHUNK_CHARS for e in out) and not any("base64" in e.text for e in out)
+
+
+def test_validate_rejects_an_oversized_text() -> None:
+    ds, ids = tiny_dataset()
+    ds.val.append(example("big", "X " + "y" * 5000))
+    assert any("exceeds the chunk limit" in p for p in dataset.validate(ds, ids))
+
+
 def test_annoctr_splits_long_documents_into_bounded_chunks(tmp_path: Path) -> None:
     sentence = "The operators kept using the same infrastructure for many months in a row." * 2  # about 150 characters
     rows = [ner_row("long", i, sentence) for i in range(30)]
@@ -313,7 +328,7 @@ def test_real_dataset_is_sound_and_sized_as_planned() -> None:
     ids = load_attack_ids(BUNDLE)
     ds = dataset.build(BUNDLE, ANNOCTR, ids)
     assert dataset.validate(ds, ids) == []
-    assert 3000 <= len(ds.train) <= 6000 and 150 <= len(ds.val) <= 400 and len(ds.test_annoctr) > 50 and len(ds.test_procedures) == 600
+    assert 3000 <= len(ds.train) <= 8000 and 150 <= len(ds.val) <= 400 and len(ds.test_annoctr) > 50 and len(ds.test_procedures) == 600
     assert {e.source for e in ds.test_annoctr} == {"annoctr"} and {e.source for e in ds.test_procedures} == {"attack_procedures"}
     assert len({t.attack_id for e in ds.train for t in e.extraction.techniques}) > 500  # the long tail is still represented
     train_docs = {e.doc_id for e in ds.train if e.source == "annoctr"}

@@ -1,0 +1,65 @@
+{
+ "system": "qwen3-1.7b-qlora-constrained",
+ "split": "test_procedures",
+ "adapter": "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora",
+ "overall": {
+  "n": 100,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.825,
+   "recall": 0.833,
+   "f1": 0.829,
+   "gold": 102
+  },
+  "entity_relaxed": {
+   "precision": 0.825,
+   "recall": 0.833,
+   "f1": 0.829,
+   "gold": 102
+  },
+  "technique_micro": {
+   "precision": 0.12,
+   "recall": 0.117,
+   "f1": 0.118,
+   "gold": 103
+  },
+  "technique_macro_f1": 0.069,
+  "relation": {
+   "precision": 0.12,
+   "recall": 0.12,
+   "f1": 0.12,
+   "gold": 100
+  },
+  "id_hallucination": 0.0
+ },
+ "attack_procedures": {
+  "n": 100,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.825,
+   "recall": 0.833,
+   "f1": 0.829,
+   "gold": 102
+  },
+  "entity_relaxed": {
+   "precision": 0.825,
+   "recall": 0.833,
+   "f1": 0.829,
+   "gold": 102
+  },
+  "technique_micro": {
+   "precision": 0.12,
+   "recall": 0.117,
+   "f1": 0.118,
+   "gold": 103
+  },
+  "technique_macro_f1": 0.069,
+  "relation": {
+   "precision": 0.12,
+   "recall": 0.12,
+   "f1": 0.12,
+   "gold": 100
+  },
+  "id_hallucination": 0.0
+ }
+}

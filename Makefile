@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -50,3 +50,12 @@ finetune-data:
 
 kaggle-notebook:
 	uv run python scripts/py_to_ipynb.py finetune/notebooks/train_qlora.py finetune/notebooks/train_qlora.ipynb
+	uv run python scripts/py_to_ipynb.py finetune/notebooks/eval_from_checkpoint.py finetune/notebooks/eval_from_checkpoint.ipynb
+
+SPLIT ?= val
+eval-extractor:
+	uv run python evals/runners/run_extractor_eval.py --split $(SPLIT)
+
+URL ?=
+ingest-report:
+	uv run python -m redstring_cti.extractor.ingest_report "$(URL)" $(ARGS)

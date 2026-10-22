@@ -8,27 +8,39 @@
 
 # %%
 DEBUG = True  # True: 200 examples, 50 steps. False: the full run.
-HF_REPO = "YOUR_HF_USERNAME/redstring-cti-extractor-qwen3-1.7b-lora"  # <- edit
+HF_REPO = "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora-v2"  # v1 (2 epochs, cap 10) is the repo without -v2
 DATA_DIR = "/kaggle/input/redstring-cti-finetune"  # <- check the folder name in the right-hand panel
-EPOCHS, LR, RANK, SEED = 2, 2e-4, 16, 42
+EPOCHS, LR, RANK, SEED = 4, 2e-4, 16, 42  # v2: 4 epochs (v1: 2); the train file also has 25 examples per technique (v1: 10)
+ANNOCTR_REPEAT = 3  # real-report chunks are only ~3% of the data but the hardest case: show each one 3 times per epoch
 
 # %%
 # !pip install -q unsloth
 
 # %%
-import json
-
-from datasets import load_dataset
-from trl import SFTConfig, SFTTrainer
-from unsloth import FastLanguageModel
+from unsloth import FastLanguageModel  # unsloth must be imported before trl / transformers
 from unsloth.chat_templates import train_on_responses_only
 
-model, tok = FastLanguageModel.from_pretrained("unsloth/Qwen3-1.7B-unsloth-bnb-4bit", max_seq_length=2048, load_in_4bit=True)
+import json
+
+import torch
+from datasets import load_dataset
+from trl import SFTConfig, SFTTrainer
+
+load_kw = dict(max_seq_length=2048, load_in_4bit=True)
+try:
+    model, tok = FastLanguageModel.from_pretrained("unsloth/Qwen3-1.7B-unsloth-bnb-4bit", dtype=torch.float16, **load_kw)
+except TypeError:  # older unsloth versions name it differently
+    model, tok = FastLanguageModel.from_pretrained("unsloth/Qwen3-1.7B-unsloth-bnb-4bit", torch_dtype=torch.float16, **load_kw)
 model = FastLanguageModel.get_peft_model(
     model, r=RANK, lora_alpha=2 * RANK, lora_dropout=0, random_state=SEED,
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     use_gradient_checkpointing="unsloth",
 )
+# fp16 training needs the trainable (LoRA) weights in float32
+for p in model.parameters():
+    if p.requires_grad:
+        p.data = p.data.float()
+print({str(p.dtype) for p in model.parameters() if p.requires_grad})  # should print {'torch.float32'}
 
 # %% [markdown]
 # ## Data
@@ -49,6 +61,11 @@ def to_text(ex):
 
 raw = load_dataset("json", data_files={"train": f"{DATA_DIR}/train.jsonl", "validation": f"{DATA_DIR}/val.jsonl"})
 train_raw, val_raw = raw["train"], raw["validation"]
+if ANNOCTR_REPEAT > 1:
+    from datasets import concatenate_datasets
+    extra = train_raw.filter(lambda r: r["source"] == "annoctr")
+    train_raw = concatenate_datasets([train_raw] + [extra] * (ANNOCTR_REPEAT - 1)).shuffle(seed=SEED)
+    print("train rows after oversampling AnnoCTR:", len(train_raw))
 if DEBUG:
     train_raw, val_raw = train_raw.shuffle(seed=SEED).select(range(200)), val_raw.select(range(40))
 train_ds, val_ds = train_raw.map(to_text), val_raw.map(to_text)
@@ -56,19 +73,34 @@ assert RESPONSE_PART in train_ds[0]["text"], "response marker not found: check t
 print(len(train_ds), len(val_ds)); print(train_ds[0]["text"][-400:])
 
 # %%
-trainer = SFTTrainer(
-    model=model, tokenizer=tok, train_dataset=train_ds, eval_dataset=val_ds,
-    args=SFTConfig(
-        dataset_text_field="text", max_seq_length=2048, per_device_train_batch_size=4, gradient_accumulation_steps=4,
-        num_train_epochs=EPOCHS, max_steps=50 if DEBUG else -1, learning_rate=LR, warmup_ratio=0.03,
-        fp16=True, bf16=False,  # T4 / P100 have no bf16
-        logging_steps=5 if DEBUG else 20, eval_strategy="steps", eval_steps=25 if DEBUG else 100,
-        save_steps=25 if DEBUG else 100, save_total_limit=2, output_dir="/kaggle/working/ckpt",
-        report_to="none", seed=SEED,
-    ),
+import inspect
+
+cfg = SFTConfig(
+    dataset_text_field="text", max_length=2048, per_device_train_batch_size=4, gradient_accumulation_steps=4,
+    num_train_epochs=EPOCHS, max_steps=50 if DEBUG else -1, learning_rate=LR, warmup_steps=5 if DEBUG else 15,
+    fp16=True, bf16=False,  # T4 / P100 have no bf16
+    logging_steps=5 if DEBUG else 20, eval_strategy="steps", eval_steps=25 if DEBUG else 250,
+    save_steps=25 if DEBUG else 250, save_total_limit=2, output_dir="/kaggle/working/ckpt",
+    report_to="none", seed=SEED,
 )
+# recent trl calls this `processing_class`, older versions `tokenizer`
+tok_kw = "processing_class" if "processing_class" in inspect.signature(SFTTrainer.__init__).parameters else "tokenizer"
+trainer = SFTTrainer(model=model, train_dataset=train_ds, eval_dataset=val_ds, args=cfg, **{tok_kw: tok})
 trainer = train_on_responses_only(trainer, instruction_part="<|im_start|>user\n", response_part=RESPONSE_PART)
 trainer.train()  # after a timeout: trainer.train(resume_from_checkpoint=True)
+
+# %% [markdown]
+# ## Save the adapter FIRST (so a later evaluation error cannot lose the training run)
+
+# %%
+model.save_pretrained("/kaggle/working/adapter"); tok.save_pretrained("/kaggle/working/adapter")
+if not DEBUG:
+    from kaggle_secrets import UserSecretsClient
+    token = UserSecretsClient().get_secret("HF_TOKEN")
+    model.push_to_hub(HF_REPO, token=token); tok.push_to_hub(HF_REPO, token=token)
+    print("pushed", HF_REPO)
+else:
+    print("DEBUG run: adapter saved locally only; nothing was pushed.")
 
 # %% [markdown]
 # ## Validation F1 (the number Phase 9 must record)
@@ -125,18 +157,8 @@ def evaluate(rows, label):
     return res
 
 
-val_rows = list(val_raw)
+val_rows = [r for r in val_raw if len(r["messages"][1]["content"]) <= 3000]  # skip any over-long text (older val files had base64 blobs)
+print(len(val_rows), "of", len(val_raw), "validation rows scored")
 results = [evaluate(val_rows, "validation")]
 json.dump(results, open("/kaggle/working/validation_metrics.json", "w"), indent=1)
 
-# %% [markdown]
-# ## Save: adapter to the Hub (full run only)
-
-# %%
-if not DEBUG:
-    from kaggle_secrets import UserSecretsClient
-    token = UserSecretsClient().get_secret("HF_TOKEN")
-    model.push_to_hub(HF_REPO, token=token); tok.push_to_hub(HF_REPO, token=token)
-    print("pushed", HF_REPO)
-else:
-    print("DEBUG run: loss should fall and JSON should mostly parse; nothing was pushed.")

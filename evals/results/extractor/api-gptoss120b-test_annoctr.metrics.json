@@ -1,0 +1,72 @@
+{
+ "system": "api-gptoss120b",
+ "split": "test_annoctr",
+ "adapter": "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora",
+ "overall": {
+  "n": 78,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.21,
+   "recall": 0.641,
+   "f1": 0.316,
+   "gold": 103
+  },
+  "entity_relaxed": {
+   "precision": 0.21,
+   "recall": 0.66,
+   "f1": 0.318,
+   "gold": 100
+  },
+  "technique_micro": {
+   "precision": 0.484,
+   "recall": 0.417,
+   "f1": 0.448,
+   "gold": 72
+  },
+  "technique_macro_f1": 0.336,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 0
+  },
+  "id_hallucination": 0.048
+ },
+ "annoctr": {
+  "n": 78,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.21,
+   "recall": 0.641,
+   "f1": 0.316,
+   "gold": 103
+  },
+  "entity_relaxed": {
+   "precision": 0.21,
+   "recall": 0.66,
+   "f1": 0.318,
+   "gold": 100
+  },
+  "technique_micro": {
+   "precision": 0.484,
+   "recall": 0.417,
+   "f1": 0.448,
+   "gold": 72
+  },
+  "technique_macro_f1": 0.336,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 0
+  },
+  "id_hallucination": 0.048
+ },
+ "api_usage": {
+  "model": "openai/gpt-oss-120b",
+  "total_cost_usd": 0.0146,
+  "cost_per_1k_docs_usd": 0.187,
+  "median_latency_s": 1.21,
+  "total_tokens": 51352
+ }
+}

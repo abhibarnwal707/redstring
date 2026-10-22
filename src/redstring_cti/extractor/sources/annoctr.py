@@ -134,6 +134,9 @@ def _chunk_document(doc: str, rows: list[dict[str, Any]], doc_techniques: dict[s
         if not re.search(r"[A-Za-z]{3}", sentence):
             continue  # separators and empty headings
         ents, techs, tainted = _annotate(row, sentence, doc_techniques, stats, split)
+        if len(sentence) > MAX_CHUNK_CHARS:  # one unbroken blob (IOC list, base64): it cannot be chunked, so its chunk is dropped
+            tainted = True
+            stats[f"{split}: sentences longer than a chunk"] += 1
         if chunk and size + len(sentence) > MAX_CHUNK_CHARS:
             if (ex := _make_example(doc, chunk, built, split, stats)) is not None:
                 out.append(ex)

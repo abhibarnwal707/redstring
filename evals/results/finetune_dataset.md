@@ -4,8 +4,8 @@ Built by `make finetune-data` (`src/redstring_cti/extractor/dataset.py`). ATT&CK
 
 | Split | Examples | From ATT&CK procedures | From AnnoCTR | Distinct documents |
 |---|---|---|---|---|
-| train | 4,141 | 3,911 | 230 | 843 |
-| val | 199 | 150 | 49 | 48 |
+| train | 7,009 | 6,779 | 230 | 956 |
+| val | 197 | 150 | 47 | 48 |
 | test_annoctr | 78 | 0 | 78 | 29 |
 | test_procedures | 600 | 600 | 0 | 63 |
 
@@ -13,26 +13,27 @@ Built by `make finetune-data` (`src/redstring_cti/extractor/dataset.py`). ATT&CK
 
 ## Composition
 
-- Training techniques: 612 distinct; per-technique cap 10 on procedure examples (the most frequent technique has hundreds of sentences, the median 7).
+- Training techniques: 612 distinct; per-technique cap 25 on procedure examples (the most frequent technique has hundreds of sentences, the median 7).
 - val: 102 distinct techniques, 1 never seen in training.
 - test_annoctr: 40 distinct techniques, 1 never seen in training.
 - test_procedures: 212 distinct techniques, 1 never seen in training.
 
-Entity types in training: MALWARE 2,059, THREAT_ACTOR 1,719, CAMPAIGN 357, TOOL 340, CVE 5.
+Entity types in training: MALWARE 3,729, THREAT_ACTOR 2,730, CAMPAIGN 598, TOOL 577, CVE 5.
 Training examples with no entity and no technique (kept as 'empty output' examples): 105.
-Text length in characters: train median 100, p95 597, max 1500; AnnoCTR chunks median 1411, p95 1491, max 1500.
+Text length in characters: train median 94, p95 290, max 1500; AnnoCTR chunks median 1411, p95 1491, max 1500.
 
 ## What was dropped or changed
 
 - chunks built: 899
-- chunks dropped (unresolvable technique mention): 542
+- chunks dropped (unresolvable technique mention): 544
 - chunks tainted by an implicit technique mention: 1,859
 - entity spans dropped (URL slug): 1
 - procedure examples before balancing: 17,173
-- procedure train examples removed by the per-technique cap: 11,742
+- procedure train examples removed by the per-technique cap: 8,874
 - procedure val/test examples removed: identical text in train: 0
 - procedures dropped: source not named in the sentence: 17
 - procedures dropped: text length: 446
+- sentences longer than a chunk: 2
 - technique links: 3,337
 - technique links mapped: 30
 - technique links unchanged: 3,289

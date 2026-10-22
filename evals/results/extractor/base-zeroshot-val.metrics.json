@@ -1,0 +1,95 @@
+{
+ "system": "base-zeroshot",
+ "split": "val",
+ "adapter": "none",
+ "overall": {
+  "n": 197,
+  "json_valid": 0.264,
+  "entity_exact": {
+   "precision": 0.24,
+   "recall": 0.143,
+   "f1": 0.179,
+   "gold": 203
+  },
+  "entity_relaxed": {
+   "precision": 0.24,
+   "recall": 0.143,
+   "f1": 0.179,
+   "gold": 203
+  },
+  "technique_micro": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 162
+  },
+  "technique_macro_f1": 0.0,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 150
+  },
+  "id_hallucination": 0.714
+ },
+ "annoctr": {
+  "n": 47,
+  "json_valid": 0.149,
+  "entity_exact": {
+   "precision": 0.059,
+   "recall": 0.023,
+   "f1": 0.033,
+   "gold": 43
+  },
+  "entity_relaxed": {
+   "precision": 0.059,
+   "recall": 0.023,
+   "f1": 0.033,
+   "gold": 43
+  },
+  "technique_micro": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 12
+  },
+  "technique_macro_f1": 0.0,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 0
+  },
+  "id_hallucination": 1.0
+ },
+ "attack_procedures": {
+  "n": 150,
+  "json_valid": 0.3,
+  "entity_exact": {
+   "precision": 0.269,
+   "recall": 0.175,
+   "f1": 0.212,
+   "gold": 160
+  },
+  "entity_relaxed": {
+   "precision": 0.269,
+   "recall": 0.175,
+   "f1": 0.212,
+   "gold": 160
+  },
+  "technique_micro": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 150
+  },
+  "technique_macro_f1": 0.0,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 150
+  },
+  "id_hallucination": 0.667
+ }
+}

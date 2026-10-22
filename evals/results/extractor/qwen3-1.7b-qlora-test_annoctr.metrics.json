@@ -1,0 +1,65 @@
+{
+ "system": "qwen3-1.7b-qlora",
+ "split": "test_annoctr",
+ "adapter": "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora",
+ "overall": {
+  "n": 78,
+  "json_valid": 0.974,
+  "entity_exact": {
+   "precision": 0.563,
+   "recall": 0.476,
+   "f1": 0.516,
+   "gold": 103
+  },
+  "entity_relaxed": {
+   "precision": 0.563,
+   "recall": 0.49,
+   "f1": 0.524,
+   "gold": 100
+  },
+  "technique_micro": {
+   "precision": 0.407,
+   "recall": 0.153,
+   "f1": 0.222,
+   "gold": 72
+  },
+  "technique_macro_f1": 0.176,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 0
+  },
+  "id_hallucination": 0.037
+ },
+ "annoctr": {
+  "n": 78,
+  "json_valid": 0.974,
+  "entity_exact": {
+   "precision": 0.563,
+   "recall": 0.476,
+   "f1": 0.516,
+   "gold": 103
+  },
+  "entity_relaxed": {
+   "precision": 0.563,
+   "recall": 0.49,
+   "f1": 0.524,
+   "gold": 100
+  },
+  "technique_micro": {
+   "precision": 0.407,
+   "recall": 0.153,
+   "f1": 0.222,
+   "gold": 72
+  },
+  "technique_macro_f1": 0.176,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 0
+  },
+  "id_hallucination": 0.037
+ }
+}
