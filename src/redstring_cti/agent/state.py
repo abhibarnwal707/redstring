@@ -11,7 +11,7 @@ from redstring_cti.agent.toolbox import Toolbox, ToolCallError
 from redstring_cti.graph.ids import LABELS
 from redstring_cti.llm import LLMClient, LLMResult
 
-Route = Literal["graph", "vector", "hybrid", "cve_live", "unanswerable"]
+Route = Literal["graph", "vector", "hybrid", "cve_live", "unanswerable", "reports"]
 Pattern = Literal["lookup", "neighbors", "paths", "cypher", "search"]
 Verdict = Literal["pass", "revise", "fail"]
 

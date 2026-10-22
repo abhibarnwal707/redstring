@@ -156,6 +156,18 @@ def cve_lookup(
     return _run("cve_lookup", {"cve_id": cve_id, "live": live}, lambda c: tools.cve_lookup(c, cve_id, live))
 
 
+@mcp.tool(annotations=READ_ONLY)
+def report_insights(
+    report_id: Annotated[str | None, Field(description="Only this ingested report (ids look like report-840ed1775d3e).")] = None,
+    entity_id: Annotated[str | None, Field(description="Only reports mentioning this group, software or campaign id, e.g. G0016 or S1073.")] = None,
+) -> dict[str, Any]:
+    """What ingested threat reports say compared with curated ATT&CK: per report and per curated actor/software, the
+    techniques ATT&CK already records for it (`confirmed`) and those only the report asserts (`new`), plus entities the
+    graph does not know. Report claims are automated extractions and unverified. Use for questions such as 'what does
+    this advisory add beyond ATT&CK?'. With no arguments it summarises the most recent reports."""
+    return _run("report_insights", {"report_id": report_id, "entity_id": entity_id}, lambda c: tools.report_insights(c, report_id, entity_id))
+
+
 def main() -> None:
     logging.basicConfig(level=logging.WARNING)
     for noisy in ("neo4j", "mcp", "httpx"):

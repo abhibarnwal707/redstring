@@ -164,3 +164,82 @@ def test_salvage_keeps_the_valid_parts_of_a_flawed_output() -> None:
     assert [(r.head, r.tail) for r in kept.relations or []] == [("LockBit", "T1486")]
     assert metrics.salvage('{"entities":[{"text":"x","type":"MALWARE"},{"text":"trunc') is None  # truncated JSON is beyond salvage
     assert metrics.salvage("not json") is None and metrics.salvage('{"entities":5,"techniques":[]}') is not None
+
+
+# ------------------------------------------------------------------ report_insights tool and agent route
+def seeded_report(driver: Driver) -> None:
+    live = {"T1566.001", "T1059.001"}
+    ex = Extraction(
+        entities=[Entity(text="Cozy Bear", type="THREAT_ACTOR"), Entity(text="ZorgBot", type="MALWARE")],
+        techniques=[Technique(attack_id="T1566.001"), Technique(attack_id="T1059.001")],
+        relations=[Relation(head="Cozy Bear", relation="USES", tail="T1566.001"), Relation(head="Cozy Bear", relation="USES", tail="T1059.001")],
+    )
+    upsert.ingest(driver, RID, "Test advisory", "test://advisory", "x", [ex], 1, 0, live)
+
+
+def test_report_insights_splits_confirmed_from_new(driver: Driver, clean: None) -> None:
+    from redstring_cti.mcp_server import tools
+
+    seeded_report(driver)
+    ctx = tools.Context(driver=driver, embed=lambda text: [0.0] * 384)
+    res = tools.report_insights(ctx, report_id=RID)
+    (report,) = res["reports"]
+    assert report["title"] == "Test advisory" and report["techniques_asserted"] == 2
+    apt29 = next(e for e in report["entities"] if e["id"] == "G0016")
+    confirmed = {t["id"] for t in apt29["confirmed"]}
+    new = {t["id"] for t in apt29["new"]}
+    # each asserted technique lands in exactly one bucket, according to ATT&CK's own USES edges
+    assert confirmed | new == {"T1566.001", "T1059.001"} and not confirmed & new
+    rows, _, _ = driver.execute_query("MATCH (:Group {attack_id:'G0016'})-[:USES]->(t:Technique) WHERE t.attack_id IN ['T1566.001','T1059.001'] RETURN t.attack_id AS id")
+    assert confirmed == {r["id"] for r in rows}
+    assert [p["name"] for p in report["provisional"]] == ["ZorgBot"]
+    assert tools.report_insights(ctx, entity_id="G0016")["reports"][0]["report_id"] == RID
+    assert all(r["report_id"] != RID for r in tools.report_insights(ctx, report_id="report-does-not-exist")["reports"])
+    assert tools.report_insights(ctx, report_id="report-nope")["reports"] == []
+
+
+def test_report_cues_do_not_hijack_ordinary_questions() -> None:
+    from redstring_cti.agent.nodes import REPORT_CUES
+
+    for q in ["Which techniques does APT29 use?", "Which mitigations apply to Phishing (T1566)?", "How many groups use T1059?", "Which groups share at least 21 techniques with APT29?"]:
+        assert not REPORT_CUES.search(q), q
+    for q in ["What does this advisory add beyond ATT&CK about Royal?", "What does the latest report say about LockBit?", "Which techniques does the ingested report assert for BianLian that ATT&CK lacks?",
+              "Compare the new advisory with ATT&CK for Royal"]:
+        assert REPORT_CUES.search(q), q
+
+
+def test_llama_cpp_backend_builds_the_prompt_and_returns_the_text(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    import sys
+    import types
+
+    from redstring_cti.extractor.backends import LlamaCppExtractor
+    from redstring_cti.extractor.schema import SYSTEM_PROMPTS
+
+    seen: dict[str, object] = {}
+
+    class FakeLlama:
+        def __init__(self, **kw: object) -> None:
+            seen["init"] = kw
+
+        def create_chat_completion(self, **kw: object) -> dict[str, object]:
+            seen["call"] = kw
+            return {"choices": [{"message": {"content": ' {"entities":[],"techniques":[]} '}}]}
+
+    class FakeGrammar:
+        @staticmethod
+        def from_json_schema(schema: str) -> str:
+            seen["schema"] = schema
+            return "grammar"
+
+    module = types.ModuleType("llama_cpp.llama_grammar")
+    module.LlamaGrammar = FakeGrammar  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "llama_cpp", types.ModuleType("llama_cpp"))
+    monkeypatch.setitem(sys.modules, "llama_cpp.llama_grammar", module)
+    extractor = LlamaCppExtractor("model.gguf", {"T1566.001"}, llama_factory=FakeLlama)
+    assert extractor("full", "Some report text.") == '{"entities":[],"techniques":[]}'
+    call = seen["call"]
+    assert isinstance(call, dict) and call["grammar"] == "grammar" and call["temperature"] == 0.0
+    assert call["messages"][0]["content"] == SYSTEM_PROMPTS["full"]  # type: ignore[index]
+    assert "T1566.001" in str(seen["schema"]) and '"relations"' in str(seen["schema"])
+    extractor("entities_techniques", "x")
+    assert '"relations"' not in str(seen["schema"])  # the second task gets its own grammar without relations

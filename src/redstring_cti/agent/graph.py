@@ -1,4 +1,4 @@
-"""The LangGraph agent: plan -> resolve entities -> retrieve (graph / vector / hybrid / live CVE) -> answer -> self-check."""
+"""The LangGraph agent: plan -> resolve entities -> retrieve (graph / vector / hybrid / live CVE / ingested reports) -> answer -> self-check."""
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -44,18 +44,20 @@ def build_graph(nodes: AgentNodes) -> Any:
     g.add_node("graph_retrieve", nodes.graph_retrieve)
     g.add_node("vector_retrieve", nodes.vector_retrieve)
     g.add_node("cve_node", nodes.cve_node)
+    g.add_node("report_node", nodes.report_node)
     g.add_node("answer", nodes.answer)
     g.add_node("self_check", nodes.self_check)
     g.add_edge(START, "plan_route")
     g.add_edge("plan_route", "resolve_entities")
 
     def after_resolve(state: AgentState) -> str:
-        return {"graph": "graph_retrieve", "hybrid": "graph_retrieve", "vector": "vector_retrieve", "cve_live": "cve_node"}.get(state["route"], "answer")
+        return {"graph": "graph_retrieve", "hybrid": "graph_retrieve", "vector": "vector_retrieve", "cve_live": "cve_node", "reports": "report_node"}.get(state["route"], "answer")
 
-    g.add_conditional_edges("resolve_entities", after_resolve, ["graph_retrieve", "vector_retrieve", "cve_node", "answer"])
+    g.add_conditional_edges("resolve_entities", after_resolve, ["graph_retrieve", "vector_retrieve", "cve_node", "report_node", "answer"])
     g.add_conditional_edges("graph_retrieve", lambda s: "vector_retrieve" if s["route"] == "hybrid" else "answer", ["vector_retrieve", "answer"])
     g.add_edge("vector_retrieve", "answer")
     g.add_edge("cve_node", "answer")
+    g.add_edge("report_node", "answer")
     g.add_edge("answer", "self_check")
     g.add_conditional_edges("self_check", lambda s: "answer" if s["verdict"] == "revise" else END, ["answer", END])
     return g.compile()

@@ -39,7 +39,7 @@ class DirectToolbox:
         self._table: dict[str, Callable[..., dict[str, Any]]] = {
             "semantic_search": tools.semantic_search, "resolve_entity": tools.resolve_entity, "get_entity": tools.get_entity,
             "get_neighbors": tools.get_neighbors, "find_paths": tools.find_paths, "cypher_query": tools.cypher_query,
-            "cve_lookup": tools.cve_lookup,
+            "cve_lookup": tools.cve_lookup, "report_insights": tools.report_insights,
         }
 
     def call(self, name: str, args: dict[str, Any]) -> dict[str, Any]:

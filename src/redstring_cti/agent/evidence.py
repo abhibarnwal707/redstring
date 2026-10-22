@@ -129,3 +129,22 @@ def render(evidence: list[Evidence], max_chars: int) -> tuple[str, list[str]]:
         parts.append(f"[{e['tool']}]\n{text}")
     block = "\n\n".join(parts)
     return block, extract_ids(block)
+
+
+def report(res: dict[str, Any], args: dict[str, Any]) -> Evidence:
+    """What ingested reports say against curated ATT&CK, one block per report and curated entity."""
+    if not res["reports"]:
+        return make("report_insights", args, "No ingested threat report matches this request.", [], 0)
+    lines: list[str] = []
+    items = 0
+    for rep in res["reports"]:
+        lines.append(f"Report \"{rep['title']}\" ({rep['source']}): {rep['techniques_asserted']} technique(s) asserted in total.")
+        for e in rep["entities"]:
+            conf = "; ".join(f"{t['id']} {t['name']}" for t in e["confirmed"]) or "none"
+            new = "; ".join(f"{t['id']} {t['name']}" for t in e["new"]) or "none"
+            lines.append(f"  {e['label']} {e['id']} {e['name']}: report-asserted techniques ATT&CK already records for it: {conf}. NEW (asserted by the report, absent from ATT&CK for this entity): {new}.")
+            items += len(e["confirmed"]) + len(e["new"])
+        if rep["provisional"]:
+            lines.append("  Entities the report names that the graph does not know (provisional): " + ", ".join(f"{p['name']} ({p['type'].lower()})" for p in rep["provisional"]) + ".")
+    lines.append(res["note"])
+    return make("report_insights", args, "\n".join(lines), [], items)

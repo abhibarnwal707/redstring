@@ -15,7 +15,7 @@ from redstring_cti.agent.prompts import (
     PLAN_SYSTEM,
     REVISE_NOTE,
 )
-from redstring_cti.agent.state import AgentState, BudgetExceeded, Plan, Run
+from redstring_cti.agent.state import AgentState, BudgetExceeded, Mention, Plan, Run
 from redstring_cti.agent.toolbox import ToolCallError
 from redstring_cti.graph.ids import parse_id
 from redstring_cti.graph.metapaths import enumerate_metapaths
@@ -57,6 +57,12 @@ NEEDS_CYPHER = re.compile(
 )
 
 
+# Questions about reports that were ingested into the graph (not about ATT&CK in general).
+REPORT_CUES = re.compile(
+    r"\b(?:ingested|this|the|that|new|latest|recent)\s+(?:threat\s+)?(?:report|advisory)s?\b|\bwhat does (?:the |this )?[\w\s#:.-]{0,40}?(?:report|advisory) (?:add|say|claim)\b|"
+    r"\b(?:beyond|compared (?:to|with)|versus|vs\.?)\s+(?:what\s+)?(?:curated\s+)?(?:ATT&CK|MITRE)\b|\breports? (?:add|adds|assert|asserts|claims?)\b",
+    re.IGNORECASE,
+)
 KEV_WORDS = re.compile(r"\bKEV\b|actively exploited|known[- ]exploited|exploited in the wild", re.IGNORECASE)
 RELATION_CUES = re.compile(r"\b(?:uses?|used|associated|related|linked|mitigat\w*|sub-?techniques?|attributed)\b", re.IGNORECASE)
 
@@ -129,6 +135,10 @@ class AgentNodes:
     # ------------------------------------------------------------------ plan
     def plan_route(self, state: AgentState) -> dict[str, Any]:
         run, question = state["run"], state["question"]
+        if REPORT_CUES.search(question):  # deterministic: saves the planner call and cannot be misrouted
+            mentions = [Mention(text=m, label=None) for m in re.findall(r"\b[A-Z][\w.-]*(?:\s+[A-Z][\w.-]*){0,2}\b", question) if m.lower() not in {"what", "which", "does", "report", "advisory", "mitre", "att", "ck"}]
+            report_plan = Plan(route="reports", mentions=mentions[:MAX_MENTIONS])
+            return {"plan": report_plan.model_dump(), "route": "reports", "pattern": None, "caveats": []}
         messages = [{"role": "system", "content": PLAN_SYSTEM}, {"role": "user", "content": f"Q: {question}"}]
         plan: Plan | None = None
         for attempt in range(2):
@@ -269,6 +279,17 @@ class AgentNodes:
             gathered.append(ev.note("The question names no CVE identifier."))
         return {"evidence": gathered, "tool_calls": len(run.tool_log)}
 
+    def report_node(self, state: AgentState) -> dict[str, Any]:
+        run = state["run"]
+        actors = [e for e in state.get("entities", []) if e["label"] in ("Group", "Software", "Campaign")][:2]
+        gathered = []
+        try:
+            for args in ([{"entity_id": e["id"]} for e in actors] or [{}]):
+                gathered.append(ev.report(run.tool("report_insights", args), args))
+        except (BudgetExceeded, ToolCallError) as exc:
+            gathered.append(ev.note(f"Report lookup stopped early: {exc}"))
+        return {"evidence": gathered, "tool_calls": len(run.tool_log)}
+
     # ------------------------------------------------------------------ answer and check
     def answer(self, state: AgentState) -> dict[str, Any]:
         run = state["run"]
@@ -280,6 +301,8 @@ class AgentNodes:
             notes.append("Some names matched more than one entity; mention each if relevant.")
         if run.exhausted:
             notes.append(f"Budget limits were reached ({', '.join(run.exhausted)}); the evidence may be incomplete.")
+        if state.get("route") == "reports":
+            notes.append("The evidence comes from automatically extracted threat reports, which are unverified: say 'the report asserts', and separate what ATT&CK already records from what is NEW.")
         if state.get("route") == "unanswerable":
             notes.append("The question looks like it asks for data the graph does not store.")
         entities = ", ".join(f"{e.get('name') or ''} {e['id']} ({e['label']})".strip() for e in state.get("entities", []))

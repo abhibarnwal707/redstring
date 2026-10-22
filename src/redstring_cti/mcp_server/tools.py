@@ -292,6 +292,45 @@ def resolve_entity(ctx: Context, name: str, labels: list[str] | None = None, lim
     return {"query": text, "candidates": candidates[:limit]}
 
 
+MAX_REPORTS = 5
+MAX_ASSERTED = 40
+
+
+def report_insights(ctx: Context, report_id: str | None = None, entity_id: str | None = None) -> dict[str, Any]:
+    """What ingested threat reports say, set against curated ATT&CK. For each report and each curated actor, software or
+    campaign it mentions: the techniques the report ties to it that ATT&CK already records (`confirmed`) and those it does
+    not (`new`). Report claims come from automated extraction and are unverified. Filter by report and/or entity."""
+    if report_id is not None and not report_id.strip():
+        raise ToolInputError("report_id is empty")
+    rows = _rows(
+        ctx,
+        "MATCH (r:Report)-[m:MENTIONS]->(e) WHERE (e:Group OR e:Software OR e:Campaign) "
+        "AND ($rid IS NULL OR r.report_id = $rid) AND ($eid IS NULL OR " + key_expr("e") + " = $eid) "
+        "OPTIONAL MATCH (e)-[a:ASSERTED {report_id: r.report_id}]->(t:Technique) "
+        "WITH r, e, m, collect(DISTINCT CASE WHEN t IS NULL THEN NULL ELSE {id: t.attack_id, name: t.name, in_attack: EXISTS { (e)-[:USES]->(t) }} END) AS asserted "
+        "RETURN r.report_id AS report_id, r.title AS title, r.source AS source, " + key_expr("e") + " AS id, e.name AS name, "
+        "[l IN labels(e) WHERE NOT l IN ['Searchable', 'Reference']][0] AS label, m.count AS mentions, asserted "
+        "ORDER BY r.ingested_at DESC, mentions DESC LIMIT 200",
+        rid=report_id, eid=entity_id,
+    )
+    reports: dict[str, dict[str, Any]] = {}
+    for r in rows:
+        if r["report_id"] not in reports and len(reports) >= MAX_REPORTS:
+            continue
+        slot = reports.setdefault(r["report_id"], {"report_id": r["report_id"], "title": r["title"], "source": r["source"], "entities": []})
+        asserted = [a for a in r["asserted"] if a]
+        slot["entities"].append({
+            "id": r["id"], "name": r["name"], "label": r["label"], "mentions": r["mentions"],
+            "confirmed": [{"id": a["id"], "name": a["name"]} for a in asserted if a["in_attack"]][:MAX_ASSERTED],
+            "new": [{"id": a["id"], "name": a["name"]} for a in asserted if not a["in_attack"]][:MAX_ASSERTED],
+        })
+    for rid, slot in reports.items():
+        prov = _rows(ctx, "MATCH (:Report {report_id: $rid})-[m:MENTIONS]->(p:ProvisionalEntity) RETURN p.name AS name, p.entity_type AS type ORDER BY m.count DESC LIMIT 15", rid=rid)
+        slot["provisional"] = prov
+        slot["techniques_asserted"] = _rows(ctx, "MATCH (:Report {report_id: $rid})-[:ASSERTS_TECHNIQUE]->(t:Technique) RETURN count(t) AS n", rid=rid)[0]["n"]
+    return {"reports": list(reports.values()), "note": "Report claims are automated extractions and unverified; `new` means ATT&CK does not link that entity to the technique."}
+
+
 def _graph_cve(ctx: Context, cve_id: str) -> dict[str, Any] | None:
     rows = _rows(
         ctx,

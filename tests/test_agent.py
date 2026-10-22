@@ -477,3 +477,23 @@ def test_kev_question_end_to_end_reaches_the_filtering_tool(box: DirectToolbox) 
     r = agent(llm, box).run("Which actively exploited (KEV) CVEs have the weakness CWE-89?")
     assert [t["tool"] for t in r.tool_log] == ["find_paths"] and r.tool_log[0]["args"]["kev_only"] is True
     assert len(r.citations) >= 31
+
+
+def test_report_questions_are_routed_without_a_planner_call(driver: Driver) -> None:
+    from redstring_cti.extractor import upsert
+    from redstring_cti.extractor.schema import Entity, Extraction, Relation, Technique
+
+    rid = "report-TEST-agent-route"
+    upsert.drop_report(driver, rid)
+    try:
+        ex = Extraction(entities=[Entity(text="Cozy Bear", type="THREAT_ACTOR")], techniques=[Technique(attack_id="T1566.001")],
+                        relations=[Relation(head="Cozy Bear", relation="USES", tail="T1566.001")])
+        upsert.ingest(driver, rid, "Agent test advisory", "test://x", "x", [ex], 1, 0, {"T1566.001"})
+        llm = ScriptedLLM("this must never be used as a plan")
+        box = DirectToolbox(tools.Context(driver=driver, embed=lambda text: [0.0] * 384))
+        result = agent(llm, box).run("What does the Agent test advisory add beyond ATT&CK about APT29?")
+        assert result.route == "reports" and not [k for k, _ in llm.prompts if k == "plan"]
+        assert any(t["tool"] == "report_insights" for t in result.tool_log)
+        assert "T1566.001" in result.answer
+    finally:
+        upsert.drop_report(driver, rid)

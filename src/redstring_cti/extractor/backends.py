@@ -73,3 +73,39 @@ class HFExtractor:
         with self._torch.no_grad():
             out = self.model.generate(**enc, max_new_tokens=700, do_sample=False, **extra)
         return str(self.tok.decode(out[0][enc["input_ids"].shape[1]:], skip_special_tokens=True)).strip()
+
+
+class LlamaCppExtractor:
+    """The deployment path: a quantised GGUF on CPU through llama-cpp-python (a Hugging Face Space has no GPU).
+
+    `pip install llama-cpp-python` on the Space (Linux has prebuilt CPU wheels; it does not build on every dev machine,
+    so this module imports it lazily). Output is constrained to the extractor's JSON schema by a llama.cpp grammar,
+    the same constraint the Phase 10 evaluation used."""
+
+    def __init__(self, model_path: str, live_ids: set[str], n_ctx: int = 4096, n_threads: int | None = None, llama_factory: Any = None) -> None:
+        import json as _json
+
+        if llama_factory is None:
+            from llama_cpp import Llama
+
+            llama_factory = Llama
+        self._json = _json
+        self._live = live_ids
+        self.llm: Any = llama_factory(model_path=model_path, n_ctx=n_ctx, n_threads=n_threads, verbose=False)
+        self._grammars: dict[str, Any] = {}
+
+    def _grammar(self, task: str) -> Any:
+        if task not in self._grammars:
+            from llama_cpp.llama_grammar import LlamaGrammar
+
+            from redstring_cti.extractor.constrain import extraction_schema
+
+            self._grammars[task] = LlamaGrammar.from_json_schema(self._json.dumps(extraction_schema(task, self._live)))
+        return self._grammars[task]
+
+    def __call__(self, task: str, chunk: str) -> str:
+        out = self.llm.create_chat_completion(
+            messages=[{"role": "system", "content": SYSTEM_PROMPTS[task]}, {"role": "user", "content": "/no_think\n" + chunk}],
+            temperature=0.0, max_tokens=700, grammar=self._grammar(task),
+        )
+        return str(out["choices"][0]["message"]["content"]).strip()

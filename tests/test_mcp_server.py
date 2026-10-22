@@ -13,7 +13,7 @@ from redstring_cti.mcp_server import server, tools
 from redstring_cti.mcp_server.audit import AuditLog
 
 REPO = Path(__file__).resolve().parents[1]
-EXPECTED_TOOLS = {"semantic_search", "resolve_entity", "get_entity", "get_neighbors", "find_paths", "cypher_query", "cve_lookup"}
+EXPECTED_TOOLS = {"semantic_search", "resolve_entity", "get_entity", "get_neighbors", "find_paths", "cypher_query", "cve_lookup", "report_insights"}
 
 
 @pytest.fixture
@@ -102,7 +102,7 @@ async def test_graph_is_unchanged_after_a_session_of_tool_calls(wired: Path, dri
 
 
 # ------------------------------------------------------------------ the real thing: a stdio subprocess
-async def test_server_works_over_stdio_as_claude_would_launch_it(tmp_path: Path) -> None:
+async def test_server_works_over_stdio_as_claude_would_launch_it(tmp_path: Path, driver: Driver) -> None:
     """Spawns `python -m redstring_cti.mcp_server.server`, talks MCP over stdin/stdout, and exercises a tool that
     loads the embedding model (torch must not write anything to stdout and corrupt the protocol)."""
     audit_log = tmp_path / "stdio-audit.jsonl"

@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -59,3 +59,9 @@ eval-extractor:
 URL ?=
 ingest-report:
 	uv run python -m redstring_cti.extractor.ingest_report "$(URL)" $(ARGS)
+
+update:
+	uv run python -m redstring_cti.update $(ARGS)
+
+app:
+	uv run python -m redstring_cti.app

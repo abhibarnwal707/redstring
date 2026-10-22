@@ -29,6 +29,7 @@ dependencies = [
     "pydantic-settings>=2.16.1",
     "ragas>=0.4.3",
     "sentence-transformers>=6.1.0",
+    "torch>=2.14.1",
     "tqdm>=4.70.1",
 ]
 
@@ -53,8 +54,17 @@ testpaths = ["tests"]  # never collect third-party repos cloned under data/
 norecursedirs = ["data", ".venv", "mlruns", "finetune"]
 
 [[tool.mypy.overrides]]
-module = ["ijson", "lmformatenforcer", "lmformatenforcer.*"]
+module = ["ijson", "lmformatenforcer", "lmformatenforcer.*", "llama_cpp", "llama_cpp.*"]
 ignore_missing_imports = true
 
 [tool.ruff]
 extend-exclude = ["finetune/notebooks"]  # Kaggle script: unsloth/trl exist only there
+
+# Linux (CI, Docker, HF Space) gets the CPU-only torch wheel: the default one drags in about 2 GB of CUDA libraries.
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu", marker = "sys_platform == 'linux'" }
