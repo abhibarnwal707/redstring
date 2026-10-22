@@ -19,6 +19,7 @@ LABELS = {
     "qwen3-1.7b-qlora": "Qwen3-1.7B QLoRA v1 (2 epochs, cap 10)",
     "qwen3-1.7b-qlora-constrained": "QLoRA v1 + schema-constrained decoding",
     "qwen3-1.7b-qlora-rep11": "QLoRA v1 + repetition penalty 1.1",
+    "qwen3-1.7b-qlora-v2-constrained": "QLoRA v2 + schema-constrained decoding",
     "qwen3-1.7b-qlora-v2": "Qwen3-1.7B QLoRA v2 (4 epochs, cap 25, real reports x3)",
     "api-gptoss120b": "API reference: gpt-oss-120b (Groq), zero-shot",
 }

@@ -6,7 +6,7 @@ import httpx
 
 from redstring_cti.extractor.schema import SYSTEM_PROMPTS
 
-DEFAULT_ADAPTER = "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora"
+DEFAULT_ADAPTER = "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora-v2"
 BASE_MODEL = "Qwen/Qwen3-1.7B"
 
 

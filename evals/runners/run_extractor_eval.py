@@ -55,11 +55,11 @@ def pick_shots(k: int) -> dict[str, list[list[dict[str, str]]]]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--adapter", default="abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora", help="Hub id or local folder; 'none' = base model")
+    ap.add_argument("--adapter", default="abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora-v2", help="Hub id or local folder; 'none' = base model")
     ap.add_argument("--split", default="val", choices=["val", "test_annoctr", "test_procedures"])
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--batch", type=int, default=8)
-    ap.add_argument("--name", default="qwen3-1.7b-qlora")
+    ap.add_argument("--name", default="qwen3-1.7b-qlora-v2")
     ap.add_argument("--shots", type=int, default=0, help="few-shot examples per task taken from the training file")
     ap.add_argument("--repetition-penalty", type=float, default=1.0)
     ap.add_argument("--max-new-tokens", type=int, default=700)
