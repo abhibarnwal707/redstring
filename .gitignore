@@ -26,3 +26,6 @@ finetune/merged/
 finetune/gguf/
 data/tools/
 build/
+data/dumps/
+data/neo4j-subset/
+data/neo4j-compact/
