@@ -65,6 +65,7 @@ def main() -> None:
     ap.add_argument("--max-new-tokens", type=int, default=700)
     ap.add_argument("--api", default="", help="score an API model instead (e.g. groq-120b); outputs are cut to the outermost {...}")
     ap.add_argument("--constrain", action="store_true", help="schema-constrained decoding (batch size 1)")
+    ap.add_argument("--ollama", default="", help="score a model served by Ollama (e.g. redstring-extractor); --constrain uses structured outputs")
     ap.add_argument("--sample", type=int, default=0, help="score a fixed, seeded subset of this many rows (the same rows for every system)")
     args = ap.parse_args()
 
@@ -80,7 +81,22 @@ def main() -> None:
     todo = [r for r in rows if r["id"] not in cache]
     print(f"{len(rows)} rows, {len(cache)} cached, {len(todo)} to generate", flush=True)
 
-    if todo and args.api:
+    if todo and args.ollama:
+        from redstring_cti.extractor.backends import OllamaExtractor
+
+        live_ids = load_attack_ids(RAW_DIR / f"enterprise-attack-{ATTACK_VERSION}.json").live
+        served = OllamaExtractor(args.ollama, live_ids=live_ids if args.constrain else None)
+        with cache_path.open("a") as f:
+            for n, r in enumerate(todo, 1):
+                t0 = time.time()
+                text = served(r["task"], r["messages"][1]["content"])
+                rec = {"id": r["id"], "source": r["source"], "task": r["task"], "output": text, "gold": r["messages"][2]["content"], "latency_s": round(time.time() - t0, 2)}
+                cache[r["id"]] = rec
+                f.write(json.dumps(rec) + "\n")
+                f.flush()
+                if n % 20 == 0 or n == len(todo):
+                    print(f"{n}/{len(todo)} done", flush=True)
+    elif todo and args.api:
         from redstring_cti.config import LLM_CHAINS
         from redstring_cti.llm import LLMClient
 

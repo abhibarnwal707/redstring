@@ -1,0 +1,95 @@
+{
+ "system": "ollama-v2-q8-constrained",
+ "split": "val",
+ "adapter": "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora-v2",
+ "overall": {
+  "n": 197,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.82,
+   "recall": 0.828,
+   "f1": 0.824,
+   "gold": 203
+  },
+  "entity_relaxed": {
+   "precision": 0.82,
+   "recall": 0.828,
+   "f1": 0.824,
+   "gold": 203
+  },
+  "technique_micro": {
+   "precision": 0.525,
+   "recall": 0.58,
+   "f1": 0.551,
+   "gold": 162
+  },
+  "technique_macro_f1": 0.374,
+  "relation": {
+   "precision": 0.58,
+   "recall": 0.58,
+   "f1": 0.58,
+   "gold": 150
+  },
+  "id_hallucination": 0.0
+ },
+ "annoctr": {
+  "n": 47,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.522,
+   "recall": 0.558,
+   "f1": 0.539,
+   "gold": 43
+  },
+  "entity_relaxed": {
+   "precision": 0.522,
+   "recall": 0.558,
+   "f1": 0.539,
+   "gold": 43
+  },
+  "technique_micro": {
+   "precision": 0.172,
+   "recall": 0.417,
+   "f1": 0.244,
+   "gold": 12
+  },
+  "technique_macro_f1": 0.045,
+  "relation": {
+   "precision": 0.0,
+   "recall": 0.0,
+   "f1": 0.0,
+   "gold": 0
+  },
+  "id_hallucination": 0.0
+ },
+ "attack_procedures": {
+  "n": 150,
+  "json_valid": 1.0,
+  "entity_exact": {
+   "precision": 0.906,
+   "recall": 0.9,
+   "f1": 0.903,
+   "gold": 160
+  },
+  "entity_relaxed": {
+   "precision": 0.906,
+   "recall": 0.9,
+   "f1": 0.903,
+   "gold": 160
+  },
+  "technique_micro": {
+   "precision": 0.593,
+   "recall": 0.593,
+   "f1": 0.593,
+   "gold": 150
+  },
+  "technique_macro_f1": 0.405,
+  "relation": {
+   "precision": 0.58,
+   "recall": 0.58,
+   "f1": 0.58,
+   "gold": 150
+  },
+  "id_hallucination": 0.0
+ }
+}

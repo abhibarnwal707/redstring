@@ -22,3 +22,7 @@ mlflow.db
 evals/results/runs/smoke-*
 evals/results/smoke-*.md
 finetune/data_v1/
+finetune/merged/
+finetune/gguf/
+data/tools/
+build/

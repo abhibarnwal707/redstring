@@ -1,4 +1,4 @@
-.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app serve up down
+.PHONY: download load embed dq gold test lint eval eval-vector eval-t2c eval-agent sanity-agent finetune-data kaggle-notebook eval-extractor ingest-report update app ollama-model serve up down
 
 download:
 	uv run python -m redstring_cti.ingest.download
@@ -65,3 +65,6 @@ update:
 
 app:
 	uv run python -m redstring_cti.app
+
+ollama-model:
+	bash finetune/build_gguf.sh

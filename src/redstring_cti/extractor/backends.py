@@ -10,20 +10,33 @@ DEFAULT_ADAPTER = "abhibarnwal707/redstring-cti-extractor-qwen3-1.7b-lora-v2"
 BASE_MODEL = "Qwen/Qwen3-1.7B"
 
 
-class OllamaExtractor:
-    """Calls an Ollama server: `ollama create redstring-extractor -f Modelfile` must have been run (Phase 11 step 1)."""
+def training_prompt(task: str, chunk: str) -> str:
+    """The exact prompt the model was trained on (Qwen3 chat format ending in an empty think block)."""
+    return f"<|im_start|>system\n{SYSTEM_PROMPTS[task]}<|im_end|>\n<|im_start|>user\n{chunk}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
 
-    def __init__(self, model: str = "redstring-extractor", url: str = "http://localhost:11434", client: httpx.Client | None = None) -> None:
-        self.model, self.url = model, url.rstrip("/")
-        self._client = client or httpx.Client(timeout=httpx.Timeout(120.0, connect=5.0))
+
+class OllamaExtractor:
+    """Calls an Ollama server (`make ollama-model` builds `redstring-extractor`).
+
+    Uses raw mode with the exact training prompt: for an imported Qwen3 model Ollama attaches its own renderer and parser,
+    which would otherwise reformat the prompt and let the model think aloud. With `live_ids`, the reply is constrained to
+    the extractor's JSON schema through Ollama's structured outputs."""
+
+    def __init__(self, model: str = "redstring-extractor", url: str = "http://localhost:11434", client: httpx.Client | None = None,
+                 live_ids: set[str] | None = None) -> None:
+        self.model, self.url, self.live_ids = model, url.rstrip("/"), live_ids
+        self._client = client or httpx.Client(timeout=httpx.Timeout(300.0, connect=5.0))
 
     def __call__(self, task: str, chunk: str) -> str:
-        resp = self._client.post(f"{self.url}/api/chat", json={
-            "model": self.model, "stream": False, "think": False, "options": {"temperature": 0, "num_predict": 700},
-            "messages": [{"role": "system", "content": SYSTEM_PROMPTS[task]}, {"role": "user", "content": chunk}],
-        })
+        body: dict[str, Any] = {"model": self.model, "prompt": training_prompt(task, chunk), "raw": True, "stream": False,
+                                "options": {"temperature": 0, "num_predict": 700, "stop": ["<|im_end|>"]}}
+        if self.live_ids is not None:
+            from redstring_cti.extractor.constrain import extraction_schema
+
+            body["format"] = extraction_schema(task, self.live_ids)
+        resp = self._client.post(f"{self.url}/api/generate", json=body)
         resp.raise_for_status()
-        return str(resp.json()["message"]["content"]).strip()
+        return str(resp.json()["response"]).strip()
 
 
 class HFExtractor:

@@ -243,3 +243,31 @@ def test_llama_cpp_backend_builds_the_prompt_and_returns_the_text(monkeypatch) -
     assert "T1566.001" in str(seen["schema"]) and '"relations"' in str(seen["schema"])
     extractor("entities_techniques", "x")
     assert '"relations"' not in str(seen["schema"])  # the second task gets its own grammar without relations
+
+
+def test_ollama_backend_sends_the_training_prompt_raw_and_can_constrain() -> None:
+    import httpx
+
+    from redstring_cti.extractor.backends import OllamaExtractor, training_prompt
+    from redstring_cti.extractor.schema import SYSTEM_PROMPTS
+
+    seen: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        import json
+
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"response": ' {"entities":[],"techniques":[]} '})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    plain = OllamaExtractor(client=client)
+    assert plain("full", "Some text.") == '{"entities":[],"techniques":[]}'
+    body = seen[0]
+    assert body["raw"] is True and body["stream"] is False and "format" not in body and body["options"]["temperature"] == 0  # type: ignore[index]
+    prompt = str(body["prompt"])
+    assert prompt == training_prompt("full", "Some text.") and prompt.startswith("<|im_start|>system\n" + SYSTEM_PROMPTS["full"])
+    assert prompt.endswith("<|im_start|>assistant\n<think>\n\n</think>\n\n")
+    constrained = OllamaExtractor(client=client, live_ids={"T1566.001"})
+    constrained("entities_techniques", "x")
+    schema = seen[1]["format"]
+    assert "T1566.001" in str(schema) and "relations" not in str(schema)

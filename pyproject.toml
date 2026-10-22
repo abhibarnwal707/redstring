@@ -58,7 +58,7 @@ module = ["ijson", "lmformatenforcer", "lmformatenforcer.*", "llama_cpp", "llama
 ignore_missing_imports = true
 
 [tool.ruff]
-extend-exclude = ["finetune/notebooks"]  # Kaggle script: unsloth/trl exist only there
+extend-exclude = ["finetune/notebooks", "finetune/merged", "data"]  # Kaggle script: unsloth/trl exist only there
 
 # Linux (CI, Docker, HF Space) gets the CPU-only torch wheel: the default one drags in about 2 GB of CUDA libraries.
 [[tool.uv.index]]

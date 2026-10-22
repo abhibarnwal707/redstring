@@ -1,0 +1,6 @@
+# Q8_0 build of the merged v2 model. Built from finetune/gguf by `make ollama-model`.
+FROM ./gguf/redstring-extractor-q8_0.gguf
+PARAMETER temperature 0
+PARAMETER num_predict 700
+PARAMETER num_ctx 4096
+PARAMETER stop "<|im_end|>"

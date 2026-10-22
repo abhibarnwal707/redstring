@@ -91,15 +91,20 @@ def benchmarks_markdown(results_dir: Path = RESULTS) -> dict[str, str]:
     return {title: (results_dir / name).read_text() if (results_dir / name).exists() else f"_{name} has not been generated yet._" for title, name in BENCHMARK_FILES}
 
 
-def build_extractor(kind: str) -> upsert.Extractor:
-    from redstring_cti.config import ATTACK_VERSION, RAW_DIR
+def live_technique_ids(driver: Any) -> set[str]:
+    """Every Technique node in the graph is a live ATT&CK technique (revoked and deprecated ones are never loaded), so the
+    graph itself is the source of truth and the Space does not need the raw ATT&CK bundle."""
+    rows, _, _ = driver.execute_query("MATCH (t:Technique) RETURN t.attack_id AS id")
+    return {r["id"] for r in rows}
+
+
+def build_extractor(kind: str, live_ids: set[str]) -> upsert.Extractor:
     from redstring_cti.extractor import backends
-    from redstring_cti.extractor.attack_ids import load_attack_ids
 
     if kind == "ollama":
-        return backends.OllamaExtractor()
+        return backends.OllamaExtractor(os.environ.get("REDSTRING_OLLAMA_MODEL", "redstring-extractor-q8"), os.environ.get("REDSTRING_OLLAMA_URL", "http://localhost:11434"), live_ids=live_ids)
     if kind.startswith("llama:"):
-        return backends.LlamaCppExtractor(kind.split(":", 1)[1], load_attack_ids(RAW_DIR / f"enterprise-attack-{ATTACK_VERSION}.json").live)
+        return backends.LlamaCppExtractor(kind.split(":", 1)[1], live_ids)
     return backends.HFExtractor(constrain=True)
 
 
@@ -108,8 +113,6 @@ def build_app() -> Any:
 
     from redstring_cti.agent.graph import Agent
     from redstring_cti.agent.toolbox import McpToolbox
-    from redstring_cti.config import ATTACK_VERSION, RAW_DIR
-    from redstring_cti.extractor.attack_ids import load_attack_ids
     from redstring_cti.graph.loader import get_driver
     from redstring_cti.llm import LLMClient
 
@@ -124,7 +127,7 @@ def build_app() -> Any:
 
     def extractor() -> Any:
         if "extractor" not in lazy:
-            lazy["extractor"] = build_extractor(os.environ.get("REDSTRING_EXTRACTOR", "hf"))
+            lazy["extractor"] = build_extractor(os.environ.get("REDSTRING_EXTRACTOR", "hf"), live_technique_ids(get_driver()))
         return lazy["extractor"]
 
     def ask(question: str, request: gr.Request) -> tuple[str, str]:
@@ -140,8 +143,7 @@ def build_app() -> Any:
 
     def extract(text: str) -> str:
         try:
-            live = load_attack_ids(RAW_DIR / f"enterprise-attack-{ATTACK_VERSION}.json").live
-            return run_extraction(text, extractor(), get_driver(), live, max_chunks)
+            return run_extraction(text, extractor(), get_driver(), live_technique_ids(get_driver()), max_chunks)
         except Exception as exc:  # noqa: BLE001
             return f"Extraction failed: {type(exc).__name__}: {exc}"
 

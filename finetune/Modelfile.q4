@@ -1,0 +1,6 @@
+# Q4_K_M build of the merged v2 model (1.05 GB). Built from finetune/gguf by `make ollama-model`.
+FROM ./gguf/redstring-extractor-q4_k_m.gguf
+PARAMETER temperature 0
+PARAMETER num_predict 700
+PARAMETER num_ctx 4096
+PARAMETER stop "<|im_end|>"

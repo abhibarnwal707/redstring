@@ -1,0 +1,16 @@
+# RedString-CTI extractor (Qwen3-1.7B + v2 LoRA, merged). Build: make ollama-model
+FROM ./merged
+TEMPLATE """{{- if .System }}<|im_start|>system
+{{ .System }}<|im_end|>
+{{ end }}<|im_start|>user
+{{ .Prompt }}<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+
+"""
+PARAMETER temperature 0
+PARAMETER num_predict 700
+PARAMETER num_ctx 4096
+PARAMETER stop "<|im_end|>"
