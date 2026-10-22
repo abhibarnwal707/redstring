@@ -8,6 +8,8 @@ Qwen3-1.7B that turns threat reports into entities, ATT&CK techniques and relati
 quantisation) and report ingestion are done. The agent's evaluation on the 109 development questions is **not finished** (it
 needs a day of the free Groq token allowance) and the held-out test run has not been made, so no agent accuracy is claimed here yet.
 
+**Demo video (about 5 minutes):** [![RedString-CTI demo](https://img.youtube.com/vi/rbSVaTp80yI/hqdefault.jpg)](https://youtu.be/rbSVaTp80yI)
+
 ## Quickstart (run it on your own computer)
 
 Nothing needs to be trained or built: the graph and our fine-tuned model are downloaded ready-made (about 2.5 GB in total).
@@ -141,7 +143,8 @@ group exploited this CVE"; the tools say so in their output.
 
 ## Demo recording
 
-`docs/demo_script.md` is a complete beginner-friendly guide: starting Docker, Ollama, Neo4j and the app, rehearsing, recording a three-minute video with what to say, editing and sharing.
+Watch it here: https://youtu.be/rbSVaTp80yI (local demo: the graph, the Ask agent, the fine-tuned extractor and the benchmark tables).
+To record your own, `docs/demo_script.md` is a complete beginner-friendly guide: starting Docker, Ollama, Neo4j and the app, rehearsing, recording a three-minute video with what to say, editing and sharing.
 
 ## Hosted deployment
 
