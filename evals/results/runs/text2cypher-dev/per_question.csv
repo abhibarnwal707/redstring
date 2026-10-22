@@ -1,0 +1,110 @@
+id,type,hops,style,correct,f1,precision,recall,order_exact,said_not_found,final_kind,wall_s,service_s,waited_s,prompt_tokens,completion_tokens,cost_usd,models,llm_calls,rows,error,unsupported_ids,question
+q003,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,0.016,0.016,0.0,1679,193,0.00036764999999999996,openai/gpt-oss-120b,2,8,,,List the mitigations for Valid Accounts (T1078).
+q004,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,1.392,1.392,0.0,1687,155,0.00034605,openai/gpt-oss-120b,2,8,,,Which mitigations apply to Exploit Public-Facing Application (T1190)?
+q005,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.233,1.316,1.916,1639,162,0.00034305,openai/gpt-oss-120b,2,2,,,What can be done to mitigate Data Encrypted for Impact (T1486)?
+q008,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.702,1.159,2.543,1659,202,0.00037005,openai/gpt-oss-120b,2,4,,,Which sub-techniques does Phishing (T1566) have?
+q010,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,14.671,1.801,12.87,1701,233,0.0003949499999999999,openai/gpt-oss-120b,2,8,,,List the sub-techniques of OS Credential Dumping (T1003).
+q011,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,13.687,1.203,12.484,1653,184,0.00035835,openai/gpt-oss-120b,2,4,,,Which sub-techniques fall under the Valid Accounts technique?
+q012,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.329,1.205,2.124,1649,132,0.00032655,openai/gpt-oss-120b,2,4,,,Which tactics does Valid Accounts (T1078) belong to?
+q013,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,13.571,2.426,11.145,1633,202,0.00036615000000000004,openai/gpt-oss-120b,2,2,,,Which tactics is Process Injection (T1055) used for?
+q014,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.213,1.408,1.805,1631,211,0.00037125,openai/gpt-oss-120b,2,1,,,What tactic does Data Encrypted for Impact (T1486) belong to?
+q019,single_hop,1,list,False,0.0,0.0,0.0,,False,ids,7.038,3.434,3.604,1849,373,0.0005011499999999999,openai/gpt-oss-120b,2,30,,,What software is associated with APT3?
+q020,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,4.082,1.533,2.549,1671,209,0.00037605,openai/gpt-oss-120b,2,8,,,List the software used by Patchwork.
+q021,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.889,2.256,1.633,2425,216,0.00049335,openai/gpt-oss-120b,2,5,,,Which techniques does the tool PsExec use?
+q022,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,9.461,1.492,7.969,1625,184,0.00035415,openai/gpt-oss-120b,2,2,,,Which campaigns are attributed to APT29?
+q023,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,11.895,1.17,10.725,1633,186,0.00035654999999999997,openai/gpt-oss-120b,2,3,,,Which campaigns are attributed to Sandworm Team?
+q025,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,12.857,0.944,11.913,1657,147,0.00033675,openai/gpt-oss-120b,2,4,,,Which CWEs are exploited by CAPEC-88 (OS Command Injection)?
+q026,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,4.571,1.414,3.157,1633,233,0.00038475,openai/gpt-oss-120b,2,2,,,What weaknesses does the attack pattern CAPEC-63 target?
+q027,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,14.955,2.629,12.326,1635,135,0.00032625,openai/gpt-oss-120b,2,2,,,What are the parent weaknesses of CWE-89 (SQL Injection)?
+q028,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,2.601,1.68,0.922,1693,190,0.00036794999999999997,openai/gpt-oss-120b,2,7,,,Which ATT&CK techniques map to CAPEC-163 (Spear Phishing)?
+q029,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,11.745,1.48,10.266,1643,140,0.00033045000000000004,openai/gpt-oss-120b,2,3,,,Which ATT&CK techniques does CAPEC-593 map to?
+q031,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,12.623,1.349,11.274,1638,159,0.0003411,openai/gpt-oss-120b,2,1,,,What weakness is the MOVEit Transfer vulnerability CVE-2023-34362 classified under?
+q032,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,2.375,1.309,1.066,1628,147,0.00033239999999999995,openai/gpt-oss-120b,2,1,,,Which CWE is CVE-2019-19781 mapped to?
+q034,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.07,1.382,1.688,1617,136,0.00032415,openai/gpt-oss-120b,2,1,,,Which group goes by the name Fancy Bear?
+q035,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,2.687,1.014,1.674,2661,203,0.00052095,openai/gpt-oss-120b,2,2,,,Which ATT&CK techniques are named Spearphishing Attachment?
+q036,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,12.276,1.071,11.205,1667,136,0.00033165,openai/gpt-oss-120b,2,6,,,Which mitigations apply to Indirect Prompt Injection (T1698)?
+q038,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,3.119,1.022,2.097,1629,179,0.00035174999999999996,openai/gpt-oss-120b,2,1,,,Which tactic does Query Public AI Services (T1682) belong to?
+q039,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,4.5,2.121,2.38,1631,119,0.00031605,openai/gpt-oss-120b,2,2,,,Which groups use Query Public AI Services (T1682)?
+q040,single_hop,1,list,True,1.0,1.0,1.0,,False,ids,11.99,1.609,10.381,1651,180,0.00035565,openai/gpt-oss-120b,2,4,,,Which groups use the Artificial Intelligence technique (T1588.007)?
+q044,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,1.801,1.801,0.0,1673,235,0.00039194999999999996,openai/gpt-oss-120b,2,7,,,Which Impact-tactic techniques does Sandworm Team use?
+q045,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,0.008,0.008,0.0,1703,248,0.00040425,openai/gpt-oss-120b,2,10,,,Which credential access techniques does APT28 use?
+q047,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,13.244,1.536,11.708,1637,233,0.00038534999999999996,openai/gpt-oss-120b,2,3,,,Which initial access techniques does Scattered Spider use?
+q048,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,13.484,1.497,11.986,1665,293,0.0004255499999999999,openai/gpt-oss-120b,2,6,,,Which initial access techniques does Kimsuky use?
+q050,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,13.175,1.477,11.698,1659,247,0.00039705,openai/gpt-oss-120b,2,4,,,Which software used by Sandworm Team uses Data Encrypted for Impact (T1486)?
+q051,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,3.535,1.937,1.598,1649,251,0.00039795,openai/gpt-oss-120b,2,3,,,Which software used by Wizard Spider uses Data Encrypted for Impact (T1486)?
+q052,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,2.253,1.547,0.706,1639,248,0.00039464999999999997,openai/gpt-oss-120b,2,1,,,Which software used by APT28 performs LSASS Memory credential dumping (T1003.001)?
+q053,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,2.763,1.705,1.058,1639,233,0.00038564999999999997,openai/gpt-oss-120b,2,1,,,Which software used by Kimsuky uses Spearphishing Attachment (T1566.001)?
+q056,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,13.113,1.33,11.783,1657,185,0.00035955,openai/gpt-oss-120b,2,5,,,Which software does the group responsible for campaign C0011 use?
+q060,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,4.053,2.336,1.718,1673,293,0.00042674999999999994,openai/gpt-oss-120b,2,7,,,Which mitigations address the impact techniques used by Lazarus Group?
+q061,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,2.91,1.769,1.141,1717,348,0.00046635,openai/gpt-oss-120b,2,12,,,Which mitigations apply to the initial access techniques used by Scattered Spider?
+q062,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,14.738,1.997,12.741,1705,304,0.00043815,openai/gpt-oss-120b,2,11,,,Which mitigations apply to the impact techniques Sandworm Team uses?
+q063,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,5.265,1.686,3.58,1653,352,0.00045914999999999997,openai/gpt-oss-120b,2,4,,,Which techniques are used by both Transparent Tribe and Andariel?
+q064,multi_hop,2,list,False,0.0,0.0,0.0,,False,ids,3.34,1.052,2.288,1643,176,0.00035204999999999996,openai/gpt-oss-120b,2,3,,,Which techniques do Andariel and LAPSUS$ both use?
+q065,multi_hop,2,list,False,0.2222222222222222,1.0,0.125,,False,ids,3.108,0.983,2.125,1627,159,0.00033945000000000004,openai/gpt-oss-120b,2,1,,,Which techniques do Transparent Tribe and Sidewinder have in common?
+q066,multi_hop,2,list,False,0.326530612244898,0.26666666666666666,0.42105263157894735,,False,ids,5.079,3.046,2.033,1885,440,0.0005467499999999999,openai/gpt-oss-120b,2,30,,,Which techniques are shared by APT3 and Patchwork?
+q067,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,5.323,1.205,4.118,1644,173,0.00035039999999999995,openai/gpt-oss-120b,2,3,,,Which CAPEC attack patterns relate to techniques used by Transparent Tribe?
+q068,multi_hop,2,list,False,0.3225806451612903,0.22727272727272727,0.5555555555555556,,False,ids,13.209,1.466,11.742,2589,355,0.00060135,openai/gpt-oss-120b,2,22,,,Which attack patterns (CAPEC) map to techniques used by Andariel?
+q069,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,10.34,1.772,8.568,1729,307,0.00044354999999999997,openai/gpt-oss-120b,2,12,,,Which CAPEC patterns are linked to techniques used by LAPSUS$?
+q070,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,3.38,1.452,1.928,1707,304,0.00043845,openai/gpt-oss-120b,2,10,,,Which CAPEC patterns map to techniques that APT33 uses?
+q071,multi_hop,2,list,False,0.0,0.0,0.0,,True,not_found,13.721,2.118,11.603,1637,124,0.00031995,openai/gpt-oss-120b,2,0,,,"Through CAPEC, which weaknesses are associated with Spearphishing Attachment (T1566.001)?"
+q072,multi_hop,2,list,False,0.0,0.0,0.0,,True,not_found,2.047,1.319,0.728,1633,127,0.00032114999999999997,openai/gpt-oss-120b,2,0,,,"Through CAPEC, which CWEs relate to Password Guessing (T1110.001)?"
+q074,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,21.197,2.9,18.297,3103,424,0.00071985,openai/gpt-oss-120b,3,2,,,Which CWEs relate to Credentials In Files (T1552.001) via CAPEC patterns?
+q075,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,14.93,2.705,12.225,3151,416,0.00072225,openai/gpt-oss-120b,3,7,,,Which CWEs are tied to Kerberoasting (T1558.003) through CAPEC mappings?
+q076,multi_hop,2,list,False,0.0,0.0,0.0,,True,not_found,1.081,1.081,0.0,1637,132,0.00032474999999999995,openai/gpt-oss-120b,2,0,,,"Which ATT&CK techniques relate, via CAPEC, to the hard-coded credentials weakness CWE-798?"
+q077,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,1.208,1.208,0.0,1681,209,0.00037755000000000004,openai/gpt-oss-120b,2,5,,,Which techniques are linked through CAPEC to CWE-307 (Improper Restriction of Excessive Authentication Attempts)?
+q078,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,2.117,1.63,0.487,1693,216,0.00038354999999999997,openai/gpt-oss-120b,2,8,,,Which techniques map via CAPEC patterns that exploit CWE-287 (Improper Authentication)?
+q079,multi_hop,2,list,False,0.0,0.0,0.0,,True,not_found,14.028,1.221,12.808,1625,134,0.00032415,openai/gpt-oss-120b,2,0,,,Which techniques are associated through CAPEC with CWE-94 (Code Injection)?
+q080,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,0.04,0.04,0.0,1704,282,0.00042479999999999997,openai/gpt-oss-120b,2,5,,,Which CISA KEV CVEs have a weakness exploited by an attack pattern mapped to Valid Accounts (T1078)?
+q082,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,16.17,1.808,14.362,1713,255,0.00040994999999999996,openai/gpt-oss-120b,2,6,,,Which KEV CVEs have a weakness tied via CAPEC to OS Credential Dumping (T1003)?
+q083,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,10.704,1.613,9.091,1713,256,0.00041055,openai/gpt-oss-120b,2,6,,,Which KEV CVEs have a weakness linked through CAPEC to Credentials from Password Stores (T1555)?
+q084,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,16.794,1.615,15.178,1717,258,0.00041235,openai/gpt-oss-120b,2,6,,,Which KEV CVEs share a weakness with a CAPEC pattern mapped to Data from Cloud Storage (T1530)?
+q085,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,12.753,1.562,11.191,1715,255,0.00041025,openai/gpt-oss-120b,2,6,,,Which KEV CVEs have a weakness tied via CAPEC to Data from Information Repositories (T1213)?
+q088,multi_hop,4,list,True,1.0,1.0,1.0,,False,ids,15.358,2.338,13.02,1700,427,0.0005112,openai/gpt-oss-120b,2,5,,,Which ransomware-linked KEV CVEs share a weakness with CAPEC patterns mapped to techniques Andariel uses?
+q089,multi_hop,4,list,True,1.0,1.0,1.0,,False,ids,16.259,2.837,13.423,1711,584,0.00060705,openai/gpt-oss-120b,2,6,,,Which KEV CVEs used in ransomware campaigns are weakness-linked to techniques employed by LAPSUS$?
+q090,multi_hop,4,list,True,1.0,1.0,1.0,,False,ids,15.678,2.329,13.349,1748,372,0.0004853999999999999,openai/gpt-oss-120b,2,7,,,Which KEV CVEs with a CVSS score of at least 9.0 have a weakness tied via CAPEC to techniques used by LAPSUS$?
+q093,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,1.579,1.579,0.0,1679,208,0.00037664999999999997,openai/gpt-oss-120b,2,3,,,"Which ATT&CK techniques are linked, via its weakness and CAPEC, to Spring4Shell (CVE-2022-22965)?"
+q094,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,1.93,1.93,0.0,1685,261,0.00040934999999999995,openai/gpt-oss-120b,2,6,,,Which techniques are associated through weakness and CAPEC with CVE-2024-3400?
+q095,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,1.525,1.525,0.0,1719,260,0.00041385,openai/gpt-oss-120b,2,9,,,Which ATT&CK techniques relate via CAPEC to the weakness of CVE-2024-38112?
+q096,multi_hop,3,list,False,0.0,0.0,0.0,,True,not_found,1.407,1.407,0.0,1633,169,0.00034634999999999993,openai/gpt-oss-120b,2,0,,,Which groups use techniques that CAPEC patterns exploiting CWE-94 (Code Injection) map to?
+q097,multi_hop,3,list,True,1.0,1.0,1.0,,False,ids,2.003,2.003,0.0,1771,297,0.00044385000000000003,openai/gpt-oss-120b,2,18,,,Which groups use techniques related through CAPEC to the hard-coded credentials weakness CWE-798?
+q098,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,5.633,1.655,3.978,1671,258,0.00040545,openai/gpt-oss-120b,2,4,,,Which mitigations apply to both Indirect Prompt Injection (T1698) and Direct Prompt Injection (T1699)?
+q099,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,14.029,1.493,12.536,2139,248,0.00046965000000000006,openai/gpt-oss-120b,2,1,,,Which mitigations address the AI-related techniques that Kimsuky uses?
+q100,multi_hop,2,list,True,1.0,1.0,1.0,,False,ids,8.341,1.587,6.754,1651,139,0.00033104999999999994,openai/gpt-oss-120b,2,1,,,Which groups use both Query Public AI Services (T1682) and Spearphishing Attachment (T1566.001)?
+q102,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,4.17,1.567,2.603,1679,185,0.00036285,openai/gpt-oss-120b,2,5,,,Which 5 groups use the most techniques?
+q103,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,0.011,0.011,0.0,1685,182,0.00036195,openai/gpt-oss-120b,2,5,,,Which 5 software entries are used by the most groups?
+q105,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,4.2,1.461,2.739,1651,164,0.00034605,openai/gpt-oss-120b,2,3,,,Which 3 tactics contain the most techniques?
+q106,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,13.392,2.043,11.349,1696,214,0.0003828,openai/gpt-oss-120b,2,5,,,Which 5 CWEs are exploited by the most CAPEC attack patterns?
+q109,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,2.146,1.463,0.683,1687,199,0.00037245,openai/gpt-oss-120b,2,5,,,Which 5 techniques are used by the most software entries?
+q110,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,13.199,1.475,11.725,1679,151,0.00034245,openai/gpt-oss-120b,2,5,,,Which 5 groups use the most software?
+q111,aggregation,1,ranked_list,True,1.0,1.0,1.0,True,False,ids,3.803,2.114,1.689,1683,228,0.00038925,openai/gpt-oss-120b,2,5,,,Which 5 techniques have the most sub-techniques?
+q112,aggregation,2,ranked_list,True,1.0,1.0,1.0,True,False,ids,3.277,1.457,1.82,1663,178,0.00035625,openai/gpt-oss-120b,2,3,,,Which 3 initial access techniques are used by the most groups?
+q113,aggregation,2,ranked_list,True,1.0,1.0,1.0,True,False,ids,13.926,1.645,12.281,1665,220,0.00038175000000000004,openai/gpt-oss-120b,2,3,,,Which 3 credential access techniques are used by the most groups?
+q114,aggregation,1,count,True,1.0,0.0,0.0,,False,number,13.15,1.037,12.113,2639,109,0.00046124999999999996,openai/gpt-oss-120b,2,1,,,How many techniques does APT29 use?
+q116,aggregation,1,count,True,1.0,0.0,0.0,,False,number,12.96,2.842,10.118,1629,132,0.00032355,openai/gpt-oss-120b,2,1,,,How many groups use Spearphishing Attachment (T1566.001)?
+q117,aggregation,1,count,True,1.0,0.0,0.0,,False,number,0.007,0.007,0.0,1619,112,0.00031005,openai/gpt-oss-120b,2,1,,,How many mitigations are there in the knowledge graph?
+q119,aggregation,1,count,True,1.0,0.0,0.0,,False,number,2.867,1.847,1.02,1615,107,0.00030645,openai/gpt-oss-120b,2,1,,,How many techniques belong to the Impact tactic?
+q120,aggregation,1,count,True,1.0,0.0,0.0,,False,number,2.317,2.317,0.0,1631,102,0.00030585,openai/gpt-oss-120b,2,1,,,How many software entries use LSASS Memory credential dumping (T1003.001)?
+q121,aggregation,1,count,True,1.0,0.0,0.0,,False,number,11.507,2.985,8.522,1629,156,0.00033794999999999995,openai/gpt-oss-120b,2,1,,,How many CAPEC attack patterns exploit CWE-79 (Cross-site Scripting)?
+q122,aggregation,1,count,True,1.0,0.0,0.0,,False,number,10.343,1.334,9.009,1627,139,0.00032744999999999996,openai/gpt-oss-120b,2,1,,,How many CISA KEV CVEs have the weakness CWE-79?
+q124,aggregation,1,count,True,1.0,0.0,0.0,,False,number,10.444,1.486,8.957,1633,130,0.00032294999999999996,openai/gpt-oss-120b,2,1,,,How many CVEs were added to the CISA KEV catalog in 2025?
+q125,aggregation,2,count,True,1.0,0.0,0.0,,False,number,3.685,1.973,1.712,1651,160,0.00034365000000000003,openai/gpt-oss-120b,2,1,,,How many groups use both Spearphishing Attachment (T1566.001) and PowerShell (T1059.001)?
+q127,semantic,1,list,True,1.0,1.0,1.0,,False,ids,1.429,1.429,0.0,1655,193,0.00036405,openai/gpt-oss-120b,2,4,,,Which technique involves pulling credentials out of the LSASS process memory?
+q128,semantic,1,list,False,0.6666666666666666,0.5,1.0,,False,ids,13.931,1.769,12.162,2198,283,0.0004994999999999999,openai/gpt-oss-120b,2,71,,,What do attackers do when they encrypt a victim's files and demand payment?
+q129,semantic,1,list,False,0.14285714285714288,1.0,0.07692307692307693,,False,ids,4.812,1.315,3.497,1887,145,0.00037005,openai/gpt-oss-120b,2,1,,,How do adversaries run their code inside the memory space of another running process?
+q130,semantic,1,list,True,1.0,1.0,1.0,,False,ids,4.19,1.571,2.619,1631,209,0.00037004999999999997,openai/gpt-oss-120b,2,2,,,Which technique covers attackers running commands through PowerShell?
+q131,semantic,1,list,False,0.18181818181818182,0.1,1.0,,False,ids,18.645,4.241,14.404,3393,752,0.0009601499999999999,openai/gpt-oss-120b,3,11,,,How do attackers trick users into clicking a malicious link in an email or message?
+q132,semantic,1,list,False,0.0,0.0,0.0,,True,not_found,1.739,1.739,0.0,1627,146,0.00033165,openai/gpt-oss-120b,2,0,,,Which technique is about stealing a user's web session cookies to hijack their login?
+q133,semantic,1,list,False,0.6666666666666666,1.0,0.5,,False,ids,1.416,1.416,0.0,1641,186,0.00035774999999999994,openai/gpt-oss-120b,2,2,,,What weakness lets an attacker alter a database query through unsanitized user input?
+q134,semantic,1,list,False,0.0,0.0,0.0,,True,not_found,1.555,1.555,0.0,1621,145,0.00033015,openai/gpt-oss-120b,2,0,,,Which weaknesses cover writing data past the end of a memory buffer?
+q135,semantic,1,list,False,0.5,0.5,0.5,,False,ids,1.546,1.546,0.0,1637,332,0.00044474999999999994,openai/gpt-oss-120b,2,2,,,What kind of weakness lets an attacker run script in another user's browser?
+q136,semantic,1,list,False,0.0,0.0,0.0,,True,not_found,1.071,1.071,0.0,1615,141,0.00032684999999999995,openai/gpt-oss-120b,2,0,,,Which weaknesses concern passwords that are built into software?
+q137,semantic,1,list,False,0.6666666666666666,1.0,0.5,,False,ids,1.381,1.381,0.0,1786,176,0.0003735,openai/gpt-oss-120b,2,19,,,What weakness lets an attacker read files outside the intended directory?
+q140,semantic,1,list,False,0.7142857142857143,1.0,0.5555555555555556,,False,ids,1.657,1.657,0.0,2188,261,0.00048479999999999997,openai/gpt-oss-120b,2,164,,,How do adversaries erase evidence of their activity from log files?
+q141,unanswerable,0,not_found,False,0.0,0.0,0.0,,False,none,13.088,1.189,11.899,1637,194,0.00036194999999999993,openai/gpt-oss-120b,2,1,,,What is the EPSS exploit-prediction score of CVE-2024-38112?
+q142,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,23.655,2.473,21.182,3058,346,0.0006662999999999999,openai/gpt-oss-120b,3,1,,,Which Microsoft security update (KB article) fixes CVE-2024-38112?
+q144,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,14.13,1.685,12.444,1617,120,0.00031455,openai/gpt-oss-120b,2,0,,,Which CVEs are associated with CWE-99999?
+q145,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,12.355,1.216,11.139,1613,172,0.00034515,openai/gpt-oss-120b,2,0,,,Which ICS techniques does Sandworm Team use?
+q146,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,12.014,1.396,10.618,1625,228,0.00038055,openai/gpt-oss-120b,2,0,,,Which Splunk detection rules cover PowerShell (T1059.001)?
+q148,unanswerable,0,not_found,False,0.0,0.0,0.0,,False,ids,14.54,2.644,11.897,1847,546,0.00060465,openai/gpt-oss-120b,2,30,,,Who developed the Cobalt Strike software?
+q149,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,13.698,1.58,12.118,1629,222,0.00037755000000000004,openai/gpt-oss-120b,2,0,,,Which CVEs does the Direct Prompt Injection technique (T1699) map to?
+q150,unanswerable,0,not_found,True,0.0,0.0,0.0,,True,not_found,14.205,1.109,13.095,1629,89,0.00029774999999999995,openai/gpt-oss-120b,2,0,,,What is the CVSS base score of CVE-2099-0001?
